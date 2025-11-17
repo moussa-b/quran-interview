@@ -83,6 +83,18 @@ module.exports = {
 
 This will build the project as a standalone app inside the Docker image.
 
+## Automated Docker Hub Publishing
+
+The workflow in `.github/workflows/docker-publish.yml` builds the container image with Docker Buildx and pushes it to [Docker Hub](https://hub.docker.com/) whenever changes land on `main` (you can also run it manually with the **Run workflow** button). To enable it:
+
+1. Create (or pick) a public/private repository in your Docker Hub account where the `quran-interview` image should live.
+2. In the GitHub repository settings, add the following secrets under **Settings → Secrets and variables → Actions**:
+   - `DOCKERHUB_USERNAME`: your Docker Hub username.
+   - `DOCKERHUB_TOKEN`: a Docker Hub access token (create one from **Account Settings → Security → New Access Token**).
+3. Once the secrets are in place, every push to `main` will produce and push the tags `latest`, the branch/tag name, the commit SHA, and an auto-incrementing semantic tag `v<run-number>` that increments with each workflow execution (e.g., `v12`, `v13`, ...). This gives you a monotonically increasing version you can use in deployments without having to create Git tags manually.
+
+By default the images are published as `DOCKERHUB_USERNAME/quran-interview`. Edit the `IMAGE_NAME` value inside the workflow if you prefer a different repository or organization.
+
 ## Deploying to Google Cloud Run
 
 1. Install the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) so you can use `gcloud` on the command line.
