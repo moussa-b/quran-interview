@@ -12,6 +12,8 @@ The data used in this project is **only for POC (Proof of Concept) purposes** fo
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+The UI stack combines [shadcn/ui](https://ui.shadcn.com) for composable components.
+
 ## Getting Started
 
 First, run the development server:
@@ -31,6 +33,33 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Local Database (MySQL)
+
+A ready-made Docker Compose stack lives in `docs/db/docker-compose.yml`. It provisions MySQL, runs the schema/seed script from `docs/db/create_db.sql`, and exposes the database on port `3308`.
+
+1. Start Docker Desktop (or your preferred Docker runtime).
+2. From the repository root run:
+
+   ```bash
+   cd docs/db
+   docker compose up -d
+   ```
+
+3. Wait for the `quran_interview_mysql` container to report `healthy` (`docker compose ps`).
+4. Connect with any MySQL client using `mysql://nextjs:nextjs@127.0.0.1:3308/quran`.
+
+To stop the database:
+
+```shell
+docker compose down
+```
+
+To wipe the `quran_mysql_data` volume and reload the schema on the next start:
+
+```shell
+docker compose down -v
+```
 
 ## Using Docker
 
@@ -79,14 +108,3 @@ The workflow in `.github/workflows/docker-publish.yml` builds the container imag
 3. Once the secrets are in place, every push to `main` will produce and push the tags `latest`, the branch/tag name, the commit SHA, and an auto-incrementing semantic tag `v<run-number>` that increments with each workflow execution (e.g., `v12`, `v13`, ...). This gives you a monotonically increasing version you can use in deployments without having to create Git tags manually.
 
 By default the images are published as `DOCKERHUB_USERNAME/quran-interview`. Edit the `IMAGE_NAME` value inside the workflow if you prefer a different repository or organization.
-
-## Deploying to Google Cloud Run
-
-1. Install the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) so you can use `gcloud` on the command line.
-1. Run `gcloud auth login` to log in to your account.
-1. [Create a new project](https://cloud.google.com/run/docs/quickstarts/build-and-deploy) in Google Cloud Run (e.g. `nextjs-docker`). Ensure billing is turned on.
-1. Build your container image using Cloud Build: `gcloud builds submit --tag gcr.io/PROJECT-ID/helloworld --project PROJECT-ID`. This will also enable Cloud Build for your project.
-1. Deploy to Cloud Run: `gcloud run deploy --image gcr.io/PROJECT-ID/helloworld --project PROJECT-ID --platform managed --allow-unauthenticated`. Choose a region of your choice.
-
-    - You will be prompted for the service name: press Enter to accept the default name, `helloworld`.
-    - You will be prompted for [region](https://cloud.google.com/run/docs/quickstarts/build-and-deploy#follow-cloud-run): select the region of your choice, for example `us-central1`.
