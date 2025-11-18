@@ -1,12 +1,21 @@
-import { InputGroup, InputGroupAddon, InputGroupInput, } from '@/components/ui/input-group'
+'use client';
+
 import Image from 'next/image';
 import { Search } from 'lucide-react';
+import { useTranslations } from '@/components/i18n/I18nProvider';
 import LanguageDropdown from '@/components/layout/LanguageDropdown';
 import ThemeToggle from '@/components/layout/ThemeToggle';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@/components/ui/input-group';
 
 export default function Header() {
+  const t = useTranslations('header');
+
   return (
-    <header className="p-4 border-b border-gray-300 flex items-center justify-between">
+    <header className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
       <Image
         src="/logo.svg"
         alt="App Logo"
@@ -20,9 +29,12 @@ export default function Header() {
       />
       <div className="flex items-center gap-2">
         <InputGroup className="w-64">
-          <InputGroupInput placeholder="Search..." />
+          <InputGroupInput
+            placeholder={t('searchPlaceholder')}
+            aria-label={t('searchPlaceholder')}
+          />
           <InputGroupAddon>
-            <Search />
+            <Search aria-hidden="true" />
           </InputGroupAddon>
         </InputGroup>
         <LanguageDropdown />

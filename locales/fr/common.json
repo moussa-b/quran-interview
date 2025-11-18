@@ -1,0 +1,22 @@
+{
+  "app": {
+    "title": "Index des thèmes du Coran",
+    "description": "Index des concepts clés et des grands thèmes du Coran"
+  },
+  "header": {
+    "searchPlaceholder": "Rechercher des thèmes...",
+    "languageLabel": "Langue"
+  },
+  "home": {
+    "heroTitle": "À compléter",
+    "heroDescription": "Nous rassemblons les concepts clés du Coran. Revenez bientôt."
+  },
+  "language": {
+    "en": "English",
+    "fr": "Français"
+  },
+  "actions": {
+    "changeLanguage": "Changer de langue"
+  }
+}
+

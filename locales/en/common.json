@@ -1,0 +1,22 @@
+{
+  "app": {
+    "title": "Quran themes index",
+    "description": "Index of key concepts and main themes of the Quran"
+  },
+  "header": {
+    "searchPlaceholder": "Search themes...",
+    "languageLabel": "Language"
+  },
+  "home": {
+    "heroTitle": "To be completed",
+    "heroDescription": "We are curating the key concepts of the Quran. Please check back soon."
+  },
+  "language": {
+    "en": "English",
+    "fr": "Français"
+  },
+  "actions": {
+    "changeLanguage": "Change language"
+  }
+}
+

@@ -30,9 +30,32 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can start editing the localized home page by modifying `app/[locale]/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Internationalization & Proxy
+
+The UI is localized with a dedicated `[locale]` segment under `app/`, so every route is rendered inside `app/[locale]/…`. English (`en`) and French (`fr`) ship with the repo, and the active locale is enforced by the proxy and stored in the `NEXT_LOCALE` cookie.
+
+- Translations are stored in `locales/<locale>/common.json`.
+- `lib/i18n/config.ts` defines the supported locales, exposes helpers such as `getDictionary`, and exports display names for the language switcher.
+- `components/i18n/I18nProvider.tsx` hydrates the dictionary on the client, while server components can call `getDictionary(locale)` directly.
+- `LanguageDropdown` reads from the provider and rewrites the current pathname so switching between locales keeps you on the same page.
+
+A root-level [`proxy.ts`](./proxy.ts) intercepts every request (except static assets/API routes) to enforce localized URLs. If a user visits `/` it:
+
+1. Detects the best locale via the `NEXT_LOCALE` cookie (if present) or the `Accept-Language` header.
+2. Redirects the user to `/<locale>/...` and persists the choice in the `NEXT_LOCALE` cookie for subsequent requests.
+
+See the [Next.js proxy docs](https://nextjs.org/docs/app/api-reference/file-conventions/proxy) for additional details on how matchers work or how to customize the redirect logic.
+
+### Adding another locale
+
+1. Add the locale code to `locales` in `lib/i18n/config.ts` (and its display name to `localeDisplayNames`).
+2. Create `locales/<new-locale>/common.json`, keeping the same key structure as the existing files.
+3. Update any server components that call `getDictionary` directly if they need locale-specific metadata.
+4. Restart `next dev` so the new route segment is discovered and statically generated.
 
 ## Local Database (MySQL)
 
