@@ -16,7 +16,28 @@ The UI stack combines [shadcn/ui](https://ui.shadcn.com) for composable componen
 
 ## Getting Started
 
-First, run the development server:
+### 1. Environment Setup
+
+Create a `.env.local` file in the project root with the following variables:
+
+```bash
+# Quran Foundation API Configuration
+QURAN_AUTH_API_BASE_URL=https://prelive-oauth2.quran.foundation
+QURAN_CONTENT_API_BASE_URL=https://apis-prelive.quran.foundation/content/api/v4
+QURAN_CLIENT_ID=your_client_id_here
+QURAN_CLIENT_SECRET=your_client_secret_here
+
+# Database Configuration (for local development)
+DB_HOST=localhost
+DB_PORT=3308
+DB_USER=nextjs
+DB_PASSWORD=nextjs
+DB_NAME=quran
+```
+
+**Important:** Replace `your_client_secret_here` with your actual client secret from Quran Foundation.
+
+### 2. Run the Development Server
 
 ```bash
 npm run dev
@@ -56,6 +77,96 @@ See the [Next.js proxy docs](https://nextjs.org/docs/app/api-reference/file-conv
 2. Create `locales/<new-locale>/common.json`, keeping the same key structure as the existing files.
 3. Update any server components that call `getDictionary` directly if they need locale-specific metadata.
 4. Restart `next dev` so the new route segment is discovered and statically generated.
+
+## Quran Foundation API Integration
+
+The project includes a fully-typed API client for the Quran Foundation API with OAuth2 authentication. See [`lib/api/README.md`](./lib/api/README.md) for detailed documentation.
+
+### Quick Examples
+
+```typescript
+import { getChapters, getChapter, getVerse } from '@/lib/api';
+
+// Fetch all chapters
+export default async function ChaptersPage() {
+  const { chapters } = await getChapters();
+  
+  return (
+    <ul>
+      {chapters.map((chapter) => (
+        <li key={chapter.id}>
+          {chapter.id}. {chapter.name_simple} - {chapter.name_arabic}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// Fetch a single chapter
+export async function ChapterDetailPage({ id }: { id: number }) {
+  const { chapter } = await getChapter(id);
+  
+  return (
+    <div>
+      <h1>{chapter.name_simple}</h1>
+      <p>{chapter.translated_name.name}</p>
+      <p>Verses: {chapter.verses_count}</p>
+    </div>
+  );
+}
+
+// Fetch a single verse
+export async function VersePage({ chapterId, verseNumber }: { chapterId: number; verseNumber: number }) {
+  const { verse } = await getVerse(chapterId, verseNumber);
+  
+  return (
+    <div>
+      <h2>Verse {verse.verse_key}</h2>
+      <p>Page: {verse.page_number} | Juz: {verse.juz_number}</p>
+    </div>
+  );
+}
+```
+
+The API client handles:
+- ✅ OAuth2 authentication with automatic token refresh
+- ✅ Token caching to minimize authentication requests
+- ✅ Full TypeScript support
+- ✅ Error handling and retry logic
+
+## Health Check Endpoint
+
+The application includes a health check endpoint at `/api/health` that monitors:
+- ✅ MySQL database connectivity
+- ✅ Quran Foundation API availability
+
+### Endpoint Details
+
+**URL:** `GET /api/health`
+
+**Response:**
+- `200 OK` - All services are healthy
+- `503 Service Unavailable` - One or more services are unhealthy
+
+**Response Format:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-11-18T12:00:00.000Z",
+  "services": {
+    "database": {
+      "status": "healthy",
+      "timestamp": "2025-11-18T12:00:00.000Z"
+    },
+    "quranApi": {
+      "status": "healthy",
+      "timestamp": "2025-11-18T12:00:00.000Z"
+    }
+  }
+}
+```
+
+This endpoint is designed to be polled by external monitoring bots (e.g., every 5 minutes) to ensure all critical services are operational.
 
 ## Local Database (MySQL)
 
