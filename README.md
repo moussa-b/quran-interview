@@ -87,9 +87,9 @@ The project includes a fully-typed API client for the Quran Foundation API with 
 ```typescript
 import { getChapters, getChapter, getVerse } from '@/lib/api';
 
-// Fetch all chapters
-export default async function ChaptersPage() {
-  const { chapters } = await getChapters();
+// Fetch all chapters with language support
+export default async function ChaptersPage({ locale }: { locale: string }) {
+  const { chapters } = await getChapters(locale); // Pass current locale
   
   return (
     <ul>
@@ -103,8 +103,8 @@ export default async function ChaptersPage() {
 }
 
 // Fetch a single chapter
-export async function ChapterDetailPage({ id }: { id: number }) {
-  const { chapter } = await getChapter(id);
+export async function ChapterDetailPage({ id, locale }: { id: number; locale: string }) {
+  const { chapter } = await getChapter(id, locale);
   
   return (
     <div>
@@ -116,8 +116,16 @@ export async function ChapterDetailPage({ id }: { id: number }) {
 }
 
 // Fetch a single verse
-export async function VersePage({ chapterId, verseNumber }: { chapterId: number; verseNumber: number }) {
-  const { verse } = await getVerse(chapterId, verseNumber);
+export async function VersePage({ 
+  chapterId, 
+  verseNumber, 
+  locale 
+}: { 
+  chapterId: number; 
+  verseNumber: number; 
+  locale?: string 
+}) {
+  const { verse } = await getVerse(chapterId, verseNumber, locale);
   
   return (
     <div>

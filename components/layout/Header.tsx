@@ -24,6 +24,7 @@ export default function Header() {
         style={{
           height: "19px",
           width: "auto",
+          cursor: "pointer",
         }}
         priority
       />

@@ -42,7 +42,7 @@ export default function LanguageDropdown() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+        className="cursor-pointer rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
         aria-label={t('languageLabel')}
       >
         <Globe className="h-5 w-5 text-gray-700 dark:text-gray-200"/>

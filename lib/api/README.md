@@ -39,9 +39,10 @@ QURAN_CLIENT_SECRET=your_client_secret_here
 ```typescript
 import { getChapters } from '@/lib/api/quran-client';
 
-export default async function ChaptersPage() {
+export default async function ChaptersPage({ locale }: { locale: string }) {
   try {
-    const data = await getChapters();
+    // Pass locale for language-specific translations
+    const data = await getChapters(locale);
     
     return (
       <div>
@@ -67,9 +68,14 @@ export default async function ChaptersPage() {
 ```typescript
 import { getChapter } from '@/lib/api/quran-client';
 
-export default async function ChapterPage({ params }: { params: { id: string } }) {
+export default async function ChapterPage({ 
+  params 
+}: { 
+  params: { id: string; locale: string } 
+}) {
   try {
-    const { chapter } = await getChapter(parseInt(params.id));
+    // Pass locale for language-specific translations
+    const { chapter } = await getChapter(parseInt(params.id), params.locale);
     
     return (
       <div>
@@ -156,9 +162,12 @@ The OAuth2 token manager:
 
 ## API Reference
 
-### `getChapters()`
+### `getChapters(language?: string)`
 
 Fetches all chapters (Surahs) from the Quran.
+
+**Parameters:**
+- `language` (string, optional): Language code for localized content (e.g., 'en', 'fr', 'ar')
 
 **Returns:** `Promise<ChaptersResponse>`
 
@@ -166,14 +175,18 @@ Fetches all chapters (Surahs) from the Quran.
 ```typescript
 const { chapters } = await getChapters();
 console.log(chapters.length); // 114
+
+// With language
+const { chapters: chaptersFr } = await getChapters('fr');
 ```
 
-### `getChapter(id: number)`
+### `getChapter(id: number, language?: string)`
 
 Fetches a single chapter by ID (1-114).
 
 **Parameters:**
 - `id` (number): Chapter ID, must be between 1 and 114
+- `language` (string, optional): Language code for localized content (e.g., 'en', 'fr', 'ar')
 
 **Returns:** `Promise<ChapterResponse>`
 
@@ -183,15 +196,19 @@ Fetches a single chapter by ID (1-114).
 ```typescript
 const { chapter } = await getChapter(2);
 console.log(chapter.name_simple); // "Al-Baqarah"
+
+// With language
+const { chapter: chapterFr } = await getChapter(2, 'fr');
 ```
 
-### `getVerse(chapterId: number, verseNumber: number)`
+### `getVerse(chapterId: number, verseNumber: number, language?: string)`
 
 Fetches a single verse by chapter ID and verse number.
 
 **Parameters:**
 - `chapterId` (number): Chapter ID, must be between 1 and 114
 - `verseNumber` (number): Verse number within the chapter, must be greater than 0
+- `language` (string, optional): Language code for localized content (e.g., 'en', 'fr', 'ar')
 
 **Returns:** `Promise<VerseResponse>`
 
@@ -202,6 +219,9 @@ Fetches a single verse by chapter ID and verse number.
 const { verse } = await getVerse(2, 5);
 console.log(verse.verse_key); // "2:5"
 console.log(verse.page_number); // 2
+
+// With language
+const { verse: verseFr } = await getVerse(2, 5, 'fr');
 ```
 
 ### Types

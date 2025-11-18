@@ -1,5 +1,5 @@
 import { getAccessToken } from './auth';
-import { ChaptersResponse, ChapterResponse, VerseResponse } from './types';
+import { ChapterResponse, ChaptersResponse, VerseResponse } from './types';
 
 /**
  * Get the content API base URL from environment variables
@@ -25,9 +25,14 @@ function getClientId(): string {
 
 /**
  * Make an authenticated request to the Quran API
+ *
+ * @param endpoint - API endpoint path
+ * @param language - Language code for localized content (e.g., 'en', 'fr', 'ar')
+ * @param options - Additional fetch options
  */
 async function makeAuthenticatedRequest<T>(
   endpoint: string,
+  language?: string,
   options: RequestInit = {}
 ): Promise<T> {
   try {
@@ -36,8 +41,15 @@ async function makeAuthenticatedRequest<T>(
     const clientId = getClientId();
     const contentApiBaseUrl = getContentApiBaseUrl();
 
+    // Build URL with language query parameter if provided
+    let url = `${contentApiBaseUrl}${endpoint}`;
+    if (language) {
+      const separator = endpoint.includes('?') ? '&' : '?';
+      url = `${url}${separator}language=${encodeURIComponent(language)}`;
+    }
+
     // Make the API request with authentication headers
-    const response = await fetch(`${contentApiBaseUrl}${endpoint}`, {
+    const response = await fetch(url, {
       ...options,
       headers: {
         'Accept': 'application/json',
@@ -64,7 +76,8 @@ async function makeAuthenticatedRequest<T>(
 
 /**
  * Fetch all chapters from the Quran API
- * 
+ *
+ * @param language - Optional language code for localized content (e.g., 'en', 'fr', 'ar')
  * @returns Promise with chapters data
  * @throws Error if the request fails
  * 
@@ -72,16 +85,20 @@ async function makeAuthenticatedRequest<T>(
  * ```typescript
  * const chapters = await getChapters();
  * console.log(chapters.chapters.length); // 114
+ *
+ * // With French translations
+ * const chaptersFr = await getChapters('fr');
  * ```
  */
-export async function getChapters(): Promise<ChaptersResponse> {
-  return makeAuthenticatedRequest<ChaptersResponse>('/chapters');
+export async function getChapters(language?: string): Promise<ChaptersResponse> {
+  return makeAuthenticatedRequest<ChaptersResponse>('/chapters', language);
 }
 
 /**
  * Fetch a single chapter by ID from the Quran API
  * 
  * @param id - Chapter ID (1-114)
+ * @param language - Optional language code for localized content (e.g., 'en', 'fr', 'ar')
  * @returns Promise with chapter data
  * @throws Error if the request fails or chapter ID is invalid
  * 
@@ -89,13 +106,16 @@ export async function getChapters(): Promise<ChaptersResponse> {
  * ```typescript
  * const response = await getChapter(2);
  * console.log(response.chapter.name_simple); // "Al-Baqarah"
+ *
+ * // With French translations
+ * const responseFr = await getChapter(2, 'fr');
  * ```
  */
-export async function getChapter(id: number): Promise<ChapterResponse> {
+export async function getChapter(id: number, language?: string): Promise<ChapterResponse> {
   if (id < 1 || id > 114) {
     throw new Error(`Invalid chapter ID: ${id}. Must be between 1 and 114.`);
   }
-  return makeAuthenticatedRequest<ChapterResponse>(`/chapters/${id}`);
+  return makeAuthenticatedRequest<ChapterResponse>(`/chapters/${id}`, language);
 }
 
 /**
@@ -103,6 +123,7 @@ export async function getChapter(id: number): Promise<ChapterResponse> {
  * 
  * @param chapterId - Chapter ID (1-114)
  * @param verseNumber - Verse number within the chapter
+ * @param language - Optional language code for localized content (e.g., 'en', 'fr', 'ar')
  * @returns Promise with verse data
  * @throws Error if the request fails or parameters are invalid
  * 
@@ -110,9 +131,12 @@ export async function getChapter(id: number): Promise<ChapterResponse> {
  * ```typescript
  * const response = await getVerse(2, 5);
  * console.log(response.verse.verse_key); // "2:5"
+ *
+ * // With language
+ * const responseFr = await getVerse(2, 5, 'fr');
  * ```
  */
-export async function getVerse(chapterId: number, verseNumber: number): Promise<VerseResponse> {
+export async function getVerse(chapterId: number, verseNumber: number, language?: string): Promise<VerseResponse> {
   if (chapterId < 1 || chapterId > 114) {
     throw new Error(`Invalid chapter ID: ${chapterId}. Must be between 1 and 114.`);
   }
@@ -121,7 +145,7 @@ export async function getVerse(chapterId: number, verseNumber: number): Promise<
   }
   
   const verseKey = `${chapterId}:${verseNumber}`;
-  return makeAuthenticatedRequest<VerseResponse>(`/verses/by_key/${verseKey}`);
+  return makeAuthenticatedRequest<VerseResponse>(`/verses/by_key/${verseKey}`, language);
 }
 
 /**
