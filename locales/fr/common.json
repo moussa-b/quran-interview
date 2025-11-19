@@ -1,15 +1,22 @@
 {
   "app": {
-    "title": "Index des thèmes du Coran",
-    "description": "Index des concepts clés et des grands thèmes du Coran"
+    "title": "Index des Thèmes du Coran",
+    "description": "Index des concepts clés et des thèmes principaux du Coran"
   },
   "header": {
     "searchPlaceholder": "Rechercher des thèmes...",
     "languageLabel": "Langue"
   },
   "home": {
-    "heroTitle": "À compléter",
-    "heroDescription": "Nous rassemblons les concepts clés du Coran. Revenez bientôt."
+    "heroTitle": "Explorer les Thèmes du Coran",
+    "heroDescription": "Découvrez les principaux thèmes et concepts du Coran organisés par catégories"
+  },
+  "topics": {
+    "categories": "Catégories",
+    "subcategories": "Sous-catégories",
+    "chapters": "Chapitres",
+    "verses": "Versets",
+    "viewTopic": "Voir le thème"
   },
   "language": {
     "en": "English",

@@ -1,15 +1,22 @@
 {
   "app": {
-    "title": "Quran themes index",
-    "description": "Index of key concepts and main themes of the Quran"
+    "title": "Quran Topics Index",
+    "description": "Index of key concepts and main topics of the Quran"
   },
   "header": {
-    "searchPlaceholder": "Search themes...",
+    "searchPlaceholder": "Search topics...",
     "languageLabel": "Language"
   },
   "home": {
-    "heroTitle": "To be completed",
-    "heroDescription": "We are curating the key concepts of the Quran. Please check back soon."
+    "heroTitle": "Explore Quran Topics",
+    "heroDescription": "Discover the main topics and concepts of the Quran organized by themes"
+  },
+  "topics": {
+    "categories": "Categories",
+    "subcategories": "Subcategories",
+    "chapters": "Chapters",
+    "verses": "Verses",
+    "viewTopic": "View topic"
   },
   "language": {
     "en": "English",

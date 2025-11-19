@@ -8,9 +8,9 @@ USE quran;
 
 
 -- ==========================
--- 1. THEMES
+-- 1. TOPICS
 -- ==========================
-CREATE TABLE themes
+CREATE TABLE topics
 (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     slug VARCHAR(255) NOT NULL UNIQUE,
@@ -19,16 +19,16 @@ CREATE TABLE themes
 );
 
 
-CREATE TABLE theme_translations
+CREATE TABLE topic_translations
 (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    theme_id BIGINT UNSIGNED NOT NULL,
+    topic_id BIGINT UNSIGNED NOT NULL,
     language_code VARCHAR(10) NOT NULL,
     label VARCHAR(255) NOT NULL,
     description TEXT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY uq_theme_lang(theme_id, language_code),
-    CONSTRAINT fk_theme_translations_theme FOREIGN KEY (theme_id) REFERENCES themes(id) ON DELETE CASCADE ON
+    UNIQUE KEY uq_topic_lang(topic_id, language_code),
+    CONSTRAINT fk_topic_translations_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE ON
         UPDATE NO ACTION
 );
 
@@ -39,12 +39,12 @@ CREATE TABLE theme_translations
 CREATE TABLE categories
 (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    theme_id BIGINT UNSIGNED NOT NULL,
+    topic_id BIGINT UNSIGNED NOT NULL,
     slug VARCHAR(255) NOT NULL,
     sort_order INT UNSIGNED DEFAULT 0,
     PRIMARY KEY (id),
-    UNIQUE KEY uq_category_slug(theme_id, slug),
-    CONSTRAINT fk_category_theme FOREIGN KEY (theme_id) REFERENCES themes(id) ON DELETE CASCADE ON
+    UNIQUE KEY uq_category_slug(topic_id, slug),
+    CONSTRAINT fk_category_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE ON
         UPDATE NO ACTION
 );
 

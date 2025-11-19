@@ -15,7 +15,7 @@ export default function Header() {
   const t = useTranslations('header');
 
   return (
-    <header className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
+    <header className="flex items-center justify-between border-b border-gray-200 px-3 py-3 dark:border-gray-700 sm:px-4 sm:py-4 md:px-6">
       <Image
         src="/logo.svg"
         alt="App Logo"
@@ -28,8 +28,9 @@ export default function Header() {
         }}
         priority
       />
-      <div className="flex items-center gap-2">
-        <InputGroup className="w-64">
+      <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
+        {/* Search bar - hidden on mobile, visible on tablet and up */}
+        <InputGroup className="hidden w-48 md:flex lg:w-64">
           <InputGroupInput
             placeholder={t('searchPlaceholder')}
             aria-label={t('searchPlaceholder')}

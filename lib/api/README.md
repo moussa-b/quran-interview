@@ -1,6 +1,52 @@
-# Quran Foundation API Integration
+# API Module
 
-This directory contains the API client for integrating with the Quran Foundation API, including OAuth2 authentication and content fetching.
+This module provides the application's data layer with clear separation between external integrations and internal services:
+
+- **External API Clients** (`lib/api/clients/`) - Third-party API integrations
+  - `quran/` - Quran Foundation API client (OAuth2 authenticated)
+- **Internal Services** (`lib/api/services/`) - Database operations
+  - `topics/` - Topics service
+  - `categories/` - Categories service
+  - `subcategories/` - Subcategories service
+  - `items/` - Items service
+  - `types.ts` - Centralized type definitions
+- **`types.ts`** - Generic API types
+
+## Architecture Overview
+
+The codebase follows Next.js best practices with clear separation of concerns:
+
+```
+lib/api/
+├── clients/              # External API integrations
+│   └── quran/           # Quran Foundation API client
+│       ├── auth.ts
+│       ├── client.ts
+│       ├── types.ts
+│       ├── index.ts
+│       └── README.md
+├── services/            # Internal business logic & database operations
+│   ├── types.ts         # Centralized type definitions
+│   ├── topics/          # Topics service
+│   │   ├── service.ts
+│   │   └── index.ts
+│   ├── categories/      # Categories service
+│   │   ├── service.ts
+│   │   └── index.ts
+│   ├── subcategories/   # Subcategories service
+│   │   ├── service.ts
+│   │   └── index.ts
+│   └── items/           # Items service
+│       ├── service.ts
+│       └── index.ts
+├── index.ts             # Convenience re-exports
+├── types.ts             # Generic API types
+└── README.md            # This file
+```
+
+## Quran Foundation API Integration
+
+The Quran client (`lib/api/clients/quran/`) provides integration with the Quran Foundation API, including OAuth2 authentication and content fetching.
 
 ## Setup Instructions
 
@@ -37,7 +83,7 @@ QURAN_CLIENT_SECRET=your_client_secret_here
 #### Fetching All Chapters
 
 ```typescript
-import { getChapters } from '@/lib/api/quran-client';
+import { getChapters } from '@/lib/api/clients/quran';
 
 export default async function ChaptersPage({ locale }: { locale: string }) {
   try {
@@ -66,7 +112,7 @@ export default async function ChaptersPage({ locale }: { locale: string }) {
 #### Fetching a Single Chapter
 
 ```typescript
-import { getChapter } from '@/lib/api/quran-client';
+import { getChapter } from '@/lib/api/clients/quran';
 
 export default async function ChapterPage({ 
   params 
@@ -96,7 +142,7 @@ export default async function ChapterPage({
 #### Fetching a Single Verse
 
 ```typescript
-import { getVerse } from '@/lib/api/quran-client';
+import { getVerse } from '@/lib/api/clients/quran';
 
 export default async function VersePage({ 
   params 
@@ -136,11 +182,34 @@ Always wrap API calls in try-catch blocks.
 
 ## Architecture
 
-### Files
+### Directory Structure
+
+```
+lib/api/
+├── clients/            # External API integrations
+│   └── quran/         # Quran Foundation API client
+│       ├── types.ts   # Type definitions for API responses
+│       ├── auth.ts    # OAuth2 token manager with caching and refresh
+│       ├── client.ts  # Main API client methods
+│       ├── index.ts   # Barrel exports
+│       └── README.md  # Documentation
+├── services/          # Internal business logic & database operations
+│   └── topics/        # Topics Taxonomy database service
+│       ├── types.ts   # Database table type definitions
+│       ├── service.ts # Database query functions
+│       ├── index.ts   # Barrel exports
+│       └── README.md  # Documentation
+├── index.ts           # Convenience re-exports
+├── types.ts           # Generic API types
+└── README.md          # This file
+```
+
+### Files in `clients/quran/`
 
 - **`types.ts`**: TypeScript type definitions for API responses
 - **`auth.ts`**: OAuth2 token manager with automatic caching and refresh
-- **`quran-client.ts`**: Main API client with methods for fetching data
+- **`client.ts`**: Main API client with methods for fetching data
+- **`index.ts`**: Barrel exports for easy importing
 
 ### Token Management
 
@@ -271,10 +340,10 @@ interface Verse {
 
 ## Extending the API Client
 
-To add more endpoints, extend the `quran-client.ts` file:
+To add more endpoints, extend the `lib/api/clients/quran/client.ts` file:
 
 ```typescript
-// In quran-client.ts
+// In lib/api/clients/quran/client.ts
 
 export async function getChapterVerses(chapterId: number): Promise<ChapterVersesResponse> {
   if (chapterId < 1 || chapterId > 114) {
@@ -292,7 +361,33 @@ export const quranClient = {
 };
 ```
 
-Don't forget to add corresponding TypeScript types in `types.ts` and export them in `index.ts`.
+Don't forget to add corresponding TypeScript types in `lib/api/clients/quran/types.ts` and export them in `lib/api/clients/quran/index.ts`.
+
+## Topics Taxonomy Services
+
+The service layer (`lib/api/services/`) provides database operations for managing topics, categories, subcategories, items, and their Quran references. Each entity has its own service module that mirrors the API route structure.
+
+### Service Modules
+
+- **Topics** (`lib/api/services/topics/`) - Manage topics
+- **Categories** (`lib/api/services/categories/`) - Manage categories
+- **Subcategories** (`lib/api/services/subcategories/`) - Manage subcategories  
+- **Items** (`lib/api/services/items/`) - Manage items with Quran references
+
+### Centralized Types
+
+All type definitions are centralized in `lib/api/services/types.ts` for easy sharing across services.
+
+**Import examples:**
+```typescript
+// Import from specific services
+import { getTopics, getTopicById } from '@/lib/api/services/topics';
+import { getCategories, getCategory } from '@/lib/api/services/categories';
+import { getItems, getItem } from '@/lib/api/services/items';
+
+// Import types from centralized location
+import type { TopicWithTranslations, CategoryWithTranslations } from '@/lib/api/services/types';
+```
 
 ## Security Notes
 

@@ -1,32 +1,35 @@
 /**
- * Quran Foundation API Client
+ * API Module Index
  * 
- * This module provides a typed, authenticated client for the Quran Foundation API.
+ * This module provides convenience re-exports for:
+ * - Quran Foundation API Client (external API integration)
+ * - Service layer (database operations)
  * 
  * @example
  * ```typescript
- * import { getChapters, getChapter, getVerse } from '@/lib/api';
+ * // Quran API Client
+ * import { getChapters, getChapter, getVerse } from '@/lib/api/clients/quran';
  * 
- * const chapters = await getChapters();
- * const chapter = await getChapter(2);
- * const verse = await getVerse(2, 5);
+ * // Services
+ * import { getTopics, getTopicById } from '@/lib/api/services/topics';
+ * import { getCategories, getCategory } from '@/lib/api/services/categories';
+ * import { getSubcategories, getSubcategory } from '@/lib/api/services/subcategories';
+ * import { getItems, getItem } from '@/lib/api/services/items';
  * ```
  */
 
-// Export main API client functions
-export { getChapters, getChapter, getVerse, quranClient } from './quran-client';
+// Re-export Quran API Client for convenience
+export * from './clients/quran';
 
-// Export types for consumers
-export type {
-  Chapter,
-  ChaptersResponse,
-  ChapterResponse,
-  Verse,
-  VerseResponse,
-  OAuth2TokenResponse,
-  ApiError,
-} from './types';
+// Re-export all services for convenience
+export * from './services/topics';
+export * from './services/categories';
+export * from './services/subcategories';
+export * from './services/items';
 
-// Export auth utilities (mainly for testing/debugging)
-export { getAccessToken, clearTokenCache } from './auth';
+// Export all types
+export * from './services/types';
+
+// Export generic types
+export type { ApiError } from './types';
 
