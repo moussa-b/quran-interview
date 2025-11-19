@@ -1,9 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import { Chapter } from '@/lib/api/types'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { cn } from '@/lib/utils'
+import { Chapter } from '@/lib/api';
 
 interface ChapterCardProps {
   chapter: Chapter
