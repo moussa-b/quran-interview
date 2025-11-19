@@ -20,50 +20,112 @@ export async function getSubcategories(
   const connection = await getConnection();
   
   try {
-    // Fetch subcategories
-    const subcategoryQuery = categoryId
-      ? 'SELECT * FROM subcategories WHERE category_id = ? ORDER BY sort_order ASC'
-      : 'SELECT * FROM subcategories ORDER BY sort_order ASC';
+    let query: string;
+    let params: unknown[];
     
-    const subcategoryParams = categoryId ? [categoryId] : [];
-    const [subcategoriesRows] = await connection.execute<RowDataPacket[]>(
-      subcategoryQuery,
-      subcategoryParams
-    );
-    const subcategories = subcategoriesRows as Subcategory[];
-
-    // Get subcategory IDs for translations query
-    const subcategoryIds = subcategories.map(s => s.id);
-    if (subcategoryIds.length === 0) {
-      return [];
+    if (categoryId !== undefined && language) {
+      query = `
+        SELECT 
+          s.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', st.id,
+              'subcategory_id', st.subcategory_id,
+              'language_code', st.language_code,
+              'label', st.label,
+              'description', st.description
+            )
+          ) as translations_json
+        FROM subcategories s
+        LEFT JOIN subcategory_translations st ON st.subcategory_id = s.id AND st.language_code = ?
+        WHERE s.category_id = ?
+        GROUP BY s.id
+        ORDER BY s.sort_order ASC
+      `;
+      params = [language, categoryId];
+    } else if (categoryId !== undefined) {
+      query = `
+        SELECT 
+          s.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', st.id,
+              'subcategory_id', st.subcategory_id,
+              'language_code', st.language_code,
+              'label', st.label,
+              'description', st.description
+            )
+          ) as translations_json
+        FROM subcategories s
+        LEFT JOIN subcategory_translations st ON st.subcategory_id = s.id
+        WHERE s.category_id = ?
+        GROUP BY s.id
+        ORDER BY s.sort_order ASC
+      `;
+      params = [categoryId];
+    } else if (language) {
+      query = `
+        SELECT 
+          s.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', st.id,
+              'subcategory_id', st.subcategory_id,
+              'language_code', st.language_code,
+              'label', st.label,
+              'description', st.description
+            )
+          ) as translations_json
+        FROM subcategories s
+        LEFT JOIN subcategory_translations st ON st.subcategory_id = s.id AND st.language_code = ?
+        GROUP BY s.id
+        ORDER BY s.sort_order ASC
+      `;
+      params = [language];
+    } else {
+      query = `
+        SELECT 
+          s.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', st.id,
+              'subcategory_id', st.subcategory_id,
+              'language_code', st.language_code,
+              'label', st.label,
+              'description', st.description
+            )
+          ) as translations_json
+        FROM subcategories s
+        LEFT JOIN subcategory_translations st ON st.subcategory_id = s.id
+        GROUP BY s.id
+        ORDER BY s.sort_order ASC
+      `;
+      params = [];
     }
-
-    // Fetch translations
-    const translationQuery = language
-      ? `SELECT * FROM subcategory_translations WHERE subcategory_id IN (?) AND language_code = ? ORDER BY subcategory_id`
-      : `SELECT * FROM subcategory_translations WHERE subcategory_id IN (?) ORDER BY subcategory_id`;
     
-    const translationParams = language ? [subcategoryIds, language] : [subcategoryIds];
-    const [translationsRows] = await connection.execute<RowDataPacket[]>(
-      translationQuery,
-      translationParams
-    );
-    const translations = translationsRows as SubcategoryTranslation[];
-
-    // Group translations by subcategory_id
-    const translationsMap = new Map<number, SubcategoryTranslation[]>();
-    translations.forEach(trans => {
-      if (!translationsMap.has(trans.subcategory_id)) {
-        translationsMap.set(trans.subcategory_id, []);
+    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    
+    // Parse JSON and construct results
+    return rows.map(row => {
+      const translationsJson = row.translations_json;
+      let translations: SubcategoryTranslation[] = [];
+      
+      if (translationsJson && translationsJson !== 'null') {
+        const parsed = typeof translationsJson === 'string' 
+          ? JSON.parse(translationsJson) 
+          : translationsJson;
+        // Filter out null entries (from LEFT JOIN with no match)
+        translations = parsed.filter((t: SubcategoryTranslation | null) => t && t.id !== null);
       }
-      translationsMap.get(trans.subcategory_id)!.push(trans);
+      
+      return {
+        id: row.id,
+        category_id: row.category_id,
+        slug: row.slug,
+        sort_order: row.sort_order,
+        translations,
+      };
     });
-
-    // Combine subcategories with translations
-    return subcategories.map(subcategory => ({
-      ...subcategory,
-      translations: translationsMap.get(subcategory.id) || [],
-    }));
   } finally {
     await connection.end();
   }
@@ -80,32 +142,66 @@ export async function getSubcategory(id: number, language?: string): Promise<Sub
   const connection = await getConnection();
   
   try {
-    // Fetch subcategory
-    const [subcategoriesRows] = await connection.execute<RowDataPacket[]>(
-      'SELECT * FROM subcategories WHERE id = ?',
-      [id]
-    );
-    const subcategories = subcategoriesRows as Subcategory[];
+    const query = language
+      ? `
+        SELECT 
+          s.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', st.id,
+              'subcategory_id', st.subcategory_id,
+              'language_code', st.language_code,
+              'label', st.label,
+              'description', st.description
+            )
+          ) as translations_json
+        FROM subcategories s
+        LEFT JOIN subcategory_translations st ON st.subcategory_id = s.id AND st.language_code = ?
+        WHERE s.id = ?
+        GROUP BY s.id
+      `
+      : `
+        SELECT 
+          s.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', st.id,
+              'subcategory_id', st.subcategory_id,
+              'language_code', st.language_code,
+              'label', st.label,
+              'description', st.description
+            )
+          ) as translations_json
+        FROM subcategories s
+        LEFT JOIN subcategory_translations st ON st.subcategory_id = s.id
+        WHERE s.id = ?
+        GROUP BY s.id
+      `;
     
-    if (subcategories.length === 0) {
+    const params = language ? [language, id] : [id];
+    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    
+    if (rows.length === 0) {
       return null;
     }
-    const subcategory = subcategories[0];
-
-    // Fetch translations
-    const translationQuery = language
-      ? 'SELECT * FROM subcategory_translations WHERE subcategory_id = ? AND language_code = ?'
-      : 'SELECT * FROM subcategory_translations WHERE subcategory_id = ?';
     
-    const translationParams = language ? [id, language] : [id];
-    const [translationsRows] = await connection.execute<RowDataPacket[]>(
-      translationQuery,
-      translationParams
-    );
-    const translations = translationsRows as SubcategoryTranslation[];
-
+    const row = rows[0];
+    const translationsJson = row.translations_json;
+    let translations: SubcategoryTranslation[] = [];
+    
+    if (translationsJson && translationsJson !== 'null') {
+      const parsed = typeof translationsJson === 'string' 
+        ? JSON.parse(translationsJson) 
+        : translationsJson;
+      // Filter out null entries (from LEFT JOIN with no match)
+      translations = parsed.filter((t: SubcategoryTranslation | null) => t && t.id !== null);
+    }
+    
     return {
-      ...subcategory,
+      id: row.id,
+      category_id: row.category_id,
+      slug: row.slug,
+      sort_order: row.sort_order,
       translations,
     };
   } finally {

@@ -20,50 +20,112 @@ export async function getCategories(
   const connection = await getConnection();
   
   try {
-    // Fetch categories
-    const categoryQuery = topicId
-      ? 'SELECT * FROM categories WHERE topic_id = ? ORDER BY sort_order ASC'
-      : 'SELECT * FROM categories ORDER BY sort_order ASC';
+    let query: string;
+    let params: unknown[];
     
-    const categoryParams = topicId ? [topicId] : [];
-    const [categoriesRows] = await connection.execute<RowDataPacket[]>(
-      categoryQuery,
-      categoryParams
-    );
-    const categories = categoriesRows as Category[];
-
-    // Get category IDs for translations query
-    const categoryIds = categories.map(c => c.id);
-    if (categoryIds.length === 0) {
-      return [];
+    if (topicId !== undefined && language) {
+      query = `
+        SELECT 
+          c.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', ct.id,
+              'category_id', ct.category_id,
+              'language_code', ct.language_code,
+              'label', ct.label,
+              'description', ct.description
+            )
+          ) as translations_json
+        FROM categories c
+        LEFT JOIN category_translations ct ON ct.category_id = c.id AND ct.language_code = ?
+        WHERE c.topic_id = ?
+        GROUP BY c.id
+        ORDER BY c.sort_order ASC
+      `;
+      params = [language, topicId];
+    } else if (topicId !== undefined) {
+      query = `
+        SELECT 
+          c.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', ct.id,
+              'category_id', ct.category_id,
+              'language_code', ct.language_code,
+              'label', ct.label,
+              'description', ct.description
+            )
+          ) as translations_json
+        FROM categories c
+        LEFT JOIN category_translations ct ON ct.category_id = c.id
+        WHERE c.topic_id = ?
+        GROUP BY c.id
+        ORDER BY c.sort_order ASC
+      `;
+      params = [topicId];
+    } else if (language) {
+      query = `
+        SELECT 
+          c.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', ct.id,
+              'category_id', ct.category_id,
+              'language_code', ct.language_code,
+              'label', ct.label,
+              'description', ct.description
+            )
+          ) as translations_json
+        FROM categories c
+        LEFT JOIN category_translations ct ON ct.category_id = c.id AND ct.language_code = ?
+        GROUP BY c.id
+        ORDER BY c.sort_order ASC
+      `;
+      params = [language];
+    } else {
+      query = `
+        SELECT 
+          c.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', ct.id,
+              'category_id', ct.category_id,
+              'language_code', ct.language_code,
+              'label', ct.label,
+              'description', ct.description
+            )
+          ) as translations_json
+        FROM categories c
+        LEFT JOIN category_translations ct ON ct.category_id = c.id
+        GROUP BY c.id
+        ORDER BY c.sort_order ASC
+      `;
+      params = [];
     }
-
-    // Fetch translations
-    const translationQuery = language
-      ? `SELECT * FROM category_translations WHERE category_id IN (?) AND language_code = ? ORDER BY category_id`
-      : `SELECT * FROM category_translations WHERE category_id IN (?) ORDER BY category_id`;
     
-    const translationParams = language ? [categoryIds, language] : [categoryIds];
-    const [translationsRows] = await connection.execute<RowDataPacket[]>(
-      translationQuery,
-      translationParams
-    );
-    const translations = translationsRows as CategoryTranslation[];
-
-    // Group translations by category_id
-    const translationsMap = new Map<number, CategoryTranslation[]>();
-    translations.forEach(trans => {
-      if (!translationsMap.has(trans.category_id)) {
-        translationsMap.set(trans.category_id, []);
+    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    
+    // Parse JSON and construct results
+    return rows.map(row => {
+      const translationsJson = row.translations_json;
+      let translations: CategoryTranslation[] = [];
+      
+      if (translationsJson && translationsJson !== 'null') {
+        const parsed = typeof translationsJson === 'string' 
+          ? JSON.parse(translationsJson) 
+          : translationsJson;
+        // Filter out null entries (from LEFT JOIN with no match)
+        translations = parsed.filter((t: CategoryTranslation | null) => t && t.id !== null);
       }
-      translationsMap.get(trans.category_id)!.push(trans);
+      
+      return {
+        id: row.id,
+        topic_id: row.topic_id,
+        slug: row.slug,
+        sort_order: row.sort_order,
+        translations,
+      };
     });
-
-    // Combine categories with translations
-    return categories.map(category => ({
-      ...category,
-      translations: translationsMap.get(category.id) || [],
-    }));
   } finally {
     await connection.end();
   }
@@ -80,32 +142,66 @@ export async function getCategory(id: number, language?: string): Promise<Catego
   const connection = await getConnection();
   
   try {
-    // Fetch category
-    const [categoriesRows] = await connection.execute<RowDataPacket[]>(
-      'SELECT * FROM categories WHERE id = ?',
-      [id]
-    );
-    const categories = categoriesRows as Category[];
+    const query = language
+      ? `
+        SELECT 
+          c.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', ct.id,
+              'category_id', ct.category_id,
+              'language_code', ct.language_code,
+              'label', ct.label,
+              'description', ct.description
+            )
+          ) as translations_json
+        FROM categories c
+        LEFT JOIN category_translations ct ON ct.category_id = c.id AND ct.language_code = ?
+        WHERE c.id = ?
+        GROUP BY c.id
+      `
+      : `
+        SELECT 
+          c.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', ct.id,
+              'category_id', ct.category_id,
+              'language_code', ct.language_code,
+              'label', ct.label,
+              'description', ct.description
+            )
+          ) as translations_json
+        FROM categories c
+        LEFT JOIN category_translations ct ON ct.category_id = c.id
+        WHERE c.id = ?
+        GROUP BY c.id
+      `;
     
-    if (categories.length === 0) {
+    const params = language ? [language, id] : [id];
+    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    
+    if (rows.length === 0) {
       return null;
     }
-    const category = categories[0];
-
-    // Fetch translations
-    const translationQuery = language
-      ? 'SELECT * FROM category_translations WHERE category_id = ? AND language_code = ?'
-      : 'SELECT * FROM category_translations WHERE category_id = ?';
     
-    const translationParams = language ? [id, language] : [id];
-    const [translationsRows] = await connection.execute<RowDataPacket[]>(
-      translationQuery,
-      translationParams
-    );
-    const translations = translationsRows as CategoryTranslation[];
-
+    const row = rows[0];
+    const translationsJson = row.translations_json;
+    let translations: CategoryTranslation[] = [];
+    
+    if (translationsJson && translationsJson !== 'null') {
+      const parsed = typeof translationsJson === 'string' 
+        ? JSON.parse(translationsJson) 
+        : translationsJson;
+      // Filter out null entries (from LEFT JOIN with no match)
+      translations = parsed.filter((t: CategoryTranslation | null) => t && t.id !== null);
+    }
+    
     return {
-      ...category,
+      id: row.id,
+      topic_id: row.topic_id,
+      slug: row.slug,
+      sort_order: row.sort_order,
       translations,
     };
   } finally {

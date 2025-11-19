@@ -23,74 +23,96 @@ export async function getItems(
   const connection = await getConnection();
   
   try {
-    // Build items query based on filters
-    let itemQuery = 'SELECT * FROM items';
-    const itemParams: unknown[] = [];
+    // Build base query with subqueries for translations and refs
+    let query = `
+      SELECT 
+        i.*,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', it.id,
+              'item_id', it.item_id,
+              'language_code', it.language_code,
+              'label', it.label,
+              'description', it.description
+            )
+          )
+          FROM item_translations it
+          WHERE it.item_id = i.id
+          ${language ? 'AND it.language_code = ?' : ''}
+        ) as translations_json,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', iqr.id,
+              'item_id', iqr.item_id,
+              'chapter', iqr.chapter,
+              'start_verse', iqr.start_verse,
+              'end_verse', iqr.end_verse,
+              'metadata', iqr.metadata,
+              'created_at', iqr.created_at,
+              'updated_at', iqr.updated_at
+            )
+          )
+          FROM item_quran_refs iqr
+          WHERE iqr.item_id = i.id
+          ORDER BY iqr.chapter, iqr.start_verse
+        ) as quran_refs_json
+      FROM items i
+    `;
+    
+    const params: unknown[] = [];
+    
+    if (language) {
+      params.push(language);
+    }
     
     if (categoryId !== undefined) {
-      itemQuery += ' WHERE category_id = ?';
-      itemParams.push(categoryId);
+      query += ' WHERE i.category_id = ?';
+      params.push(categoryId);
     } else if (subcategoryId !== undefined) {
-      itemQuery += ' WHERE subcategory_id = ?';
-      itemParams.push(subcategoryId);
+      query += ' WHERE i.subcategory_id = ?';
+      params.push(subcategoryId);
     }
     
-    itemQuery += ' ORDER BY sort_order ASC';
+    query += ' ORDER BY i.sort_order ASC';
     
-    const [itemsRows] = await connection.execute<RowDataPacket[]>(
-      itemQuery,
-      itemParams
-    );
-    const items = itemsRows as Item[];
-
-    // Get item IDs for related queries
-    const itemIds = items.map(i => i.id);
-    if (itemIds.length === 0) {
-      return [];
-    }
-
-    // Fetch translations
-    const translationQuery = language
-      ? `SELECT * FROM item_translations WHERE item_id IN (?) AND language_code = ? ORDER BY item_id`
-      : `SELECT * FROM item_translations WHERE item_id IN (?) ORDER BY item_id`;
+    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
     
-    const translationParams = language ? [itemIds, language] : [itemIds];
-    const [translationsRows] = await connection.execute<RowDataPacket[]>(
-      translationQuery,
-      translationParams
-    );
-    const translations = translationsRows as ItemTranslation[];
-
-    // Fetch Quran references
-    const [refsRows] = await connection.execute<RowDataPacket[]>(
-      'SELECT * FROM item_quran_refs WHERE item_id IN (?) ORDER BY item_id, chapter, start_verse',
-      [itemIds]
-    );
-    const refs = refsRows as ItemQuranRef[];
-
-    // Group translations and refs by item_id
-    const translationsMap = new Map<number, ItemTranslation[]>();
-    translations.forEach(trans => {
-      if (!translationsMap.has(trans.item_id)) {
-        translationsMap.set(trans.item_id, []);
+    // Parse JSON and construct results
+    return rows.map(row => {
+      const translationsJson = row.translations_json;
+      const quranRefsJson = row.quran_refs_json;
+      
+      let translations: ItemTranslation[] = [];
+      let quran_refs: ItemQuranRef[] = [];
+      
+      if (translationsJson && translationsJson !== 'null') {
+        const parsed = typeof translationsJson === 'string' 
+          ? JSON.parse(translationsJson) 
+          : translationsJson;
+        // Filter out null entries
+        translations = parsed.filter((t: ItemTranslation | null) => t && t.id !== null);
       }
-      translationsMap.get(trans.item_id)!.push(trans);
-    });
-
-    const refsMap = new Map<number, ItemQuranRef[]>();
-    refs.forEach(ref => {
-      if (!refsMap.has(ref.item_id)) {
-        refsMap.set(ref.item_id, []);
+      
+      if (quranRefsJson && quranRefsJson !== 'null') {
+        const parsed = typeof quranRefsJson === 'string' 
+          ? JSON.parse(quranRefsJson) 
+          : quranRefsJson;
+        // Filter out null entries
+        quran_refs = parsed.filter((r: ItemQuranRef | null) => r && r.id !== null);
       }
-      refsMap.get(ref.item_id)!.push(ref);
+      
+      return {
+        id: row.id,
+        category_id: row.category_id,
+        subcategory_id: row.subcategory_id,
+        slug: row.slug,
+        sort_order: row.sort_order,
+        translations,
+        quran_refs,
+      };
     });
-
-    // Combine items with translations and refs
-    return items.map(item => ({
-      ...item,
-      translations: translationsMap.get(item.id) || [],
-      quran_refs: refsMap.get(item.id) || [],
-    }));
   } finally {
     await connection.end();
   }
@@ -107,39 +129,80 @@ export async function getItem(id: number, language?: string): Promise<ItemWithDe
   const connection = await getConnection();
   
   try {
-    // Fetch item
-    const [itemsRows] = await connection.execute<RowDataPacket[]>(
-      'SELECT * FROM items WHERE id = ?',
-      [id]
-    );
-    const items = itemsRows as Item[];
+    const query = `
+      SELECT 
+        i.*,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', it.id,
+              'item_id', it.item_id,
+              'language_code', it.language_code,
+              'label', it.label,
+              'description', it.description
+            )
+          )
+          FROM item_translations it
+          WHERE it.item_id = i.id
+          ${language ? 'AND it.language_code = ?' : ''}
+        ) as translations_json,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', iqr.id,
+              'item_id', iqr.item_id,
+              'chapter', iqr.chapter,
+              'start_verse', iqr.start_verse,
+              'end_verse', iqr.end_verse,
+              'metadata', iqr.metadata,
+              'created_at', iqr.created_at,
+              'updated_at', iqr.updated_at
+            )
+          )
+          FROM item_quran_refs iqr
+          WHERE iqr.item_id = i.id
+          ORDER BY iqr.chapter, iqr.start_verse
+        ) as quran_refs_json
+      FROM items i
+      WHERE i.id = ?
+    `;
     
-    if (items.length === 0) {
+    const params = language ? [language, id] : [id];
+    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    
+    if (rows.length === 0) {
       return null;
     }
-    const item = items[0];
-
-    // Fetch translations
-    const translationQuery = language
-      ? 'SELECT * FROM item_translations WHERE item_id = ? AND language_code = ?'
-      : 'SELECT * FROM item_translations WHERE item_id = ?';
     
-    const translationParams = language ? [id, language] : [id];
-    const [translationsRows] = await connection.execute<RowDataPacket[]>(
-      translationQuery,
-      translationParams
-    );
-    const translations = translationsRows as ItemTranslation[];
-
-    // Fetch Quran references
-    const [refsRows] = await connection.execute<RowDataPacket[]>(
-      'SELECT * FROM item_quran_refs WHERE item_id = ? ORDER BY chapter, start_verse',
-      [id]
-    );
-    const quran_refs = refsRows as ItemQuranRef[];
-
+    const row = rows[0];
+    const translationsJson = row.translations_json;
+    const quranRefsJson = row.quran_refs_json;
+    
+    let translations: ItemTranslation[] = [];
+    let quran_refs: ItemQuranRef[] = [];
+    
+    if (translationsJson && translationsJson !== 'null') {
+      const parsed = typeof translationsJson === 'string' 
+        ? JSON.parse(translationsJson) 
+        : translationsJson;
+      // Filter out null entries
+      translations = parsed.filter((t: ItemTranslation | null) => t && t.id !== null);
+    }
+    
+    if (quranRefsJson && quranRefsJson !== 'null') {
+      const parsed = typeof quranRefsJson === 'string' 
+        ? JSON.parse(quranRefsJson) 
+        : quranRefsJson;
+      // Filter out null entries
+      quran_refs = parsed.filter((r: ItemQuranRef | null) => r && r.id !== null);
+    }
+    
     return {
-      ...item,
+      id: row.id,
+      category_id: row.category_id,
+      subcategory_id: row.subcategory_id,
+      slug: row.slug,
+      sort_order: row.sort_order,
       translations,
       quran_refs,
     };

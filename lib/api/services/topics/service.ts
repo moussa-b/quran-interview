@@ -16,38 +16,65 @@ export async function getTopics(language?: string): Promise<TopicWithTranslation
   const connection = await getConnection();
   
   try {
-    // Fetch topics
-    const [topicsRows] = await connection.execute<RowDataPacket[]>(
-      'SELECT * FROM topics ORDER BY sort_order ASC'
-    );
-    const topics = topicsRows as Topic[];
-
-    // Fetch translations
-    const translationQuery = language
-      ? 'SELECT * FROM topic_translations WHERE language_code = ? ORDER BY topic_id'
-      : 'SELECT * FROM topic_translations ORDER BY topic_id';
+    const query = language
+      ? `
+        SELECT 
+          t.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', tt.id,
+              'topic_id', tt.topic_id,
+              'language_code', tt.language_code,
+              'label', tt.label,
+              'description', tt.description
+            )
+          ) as translations_json
+        FROM topics t
+        LEFT JOIN topic_translations tt ON tt.topic_id = t.id AND tt.language_code = ?
+        GROUP BY t.id
+        ORDER BY t.sort_order ASC
+      `
+      : `
+        SELECT 
+          t.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', tt.id,
+              'topic_id', tt.topic_id,
+              'language_code', tt.language_code,
+              'label', tt.label,
+              'description', tt.description
+            )
+          ) as translations_json
+        FROM topics t
+        LEFT JOIN topic_translations tt ON tt.topic_id = t.id
+        GROUP BY t.id
+        ORDER BY t.sort_order ASC
+      `;
     
-    const translationParams = language ? [language] : [];
-    const [translationsRows] = await connection.execute<RowDataPacket[]>(
-      translationQuery,
-      translationParams
-    );
-    const translations = translationsRows as TopicTranslation[];
-
-    // Group translations by topic_id
-    const translationsMap = new Map<number, TopicTranslation[]>();
-    translations.forEach(trans => {
-      if (!translationsMap.has(trans.topic_id)) {
-        translationsMap.set(trans.topic_id, []);
+    const params = language ? [language] : [];
+    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    
+    // Parse JSON and construct results
+    return rows.map(row => {
+      const translationsJson = row.translations_json;
+      let translations: TopicTranslation[] = [];
+      
+      if (translationsJson && translationsJson !== 'null') {
+        const parsed = typeof translationsJson === 'string' 
+          ? JSON.parse(translationsJson) 
+          : translationsJson;
+        // Filter out null entries (from LEFT JOIN with no match)
+        translations = parsed.filter((t: TopicTranslation | null) => t && t.id !== null);
       }
-      translationsMap.get(trans.topic_id)!.push(trans);
+      
+      return {
+        id: row.id,
+        slug: row.slug,
+        sort_order: row.sort_order,
+        translations,
+      };
     });
-
-    // Combine topics with translations
-    return topics.map(topic => ({
-      ...topic,
-      translations: translationsMap.get(topic.id) || [],
-    }));
   } finally {
     await connection.end();
   }
@@ -64,32 +91,65 @@ export async function getTopicById(id: number, language?: string): Promise<Topic
   const connection = await getConnection();
   
   try {
-    // Fetch topic
-    const [topicsRows] = await connection.execute<RowDataPacket[]>(
-      'SELECT * FROM topics WHERE id = ?',
-      [id]
-    );
-    const topics = topicsRows as Topic[];
+    const query = language
+      ? `
+        SELECT 
+          t.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', tt.id,
+              'topic_id', tt.topic_id,
+              'language_code', tt.language_code,
+              'label', tt.label,
+              'description', tt.description
+            )
+          ) as translations_json
+        FROM topics t
+        LEFT JOIN topic_translations tt ON tt.topic_id = t.id AND tt.language_code = ?
+        WHERE t.id = ?
+        GROUP BY t.id
+      `
+      : `
+        SELECT 
+          t.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', tt.id,
+              'topic_id', tt.topic_id,
+              'language_code', tt.language_code,
+              'label', tt.label,
+              'description', tt.description
+            )
+          ) as translations_json
+        FROM topics t
+        LEFT JOIN topic_translations tt ON tt.topic_id = t.id
+        WHERE t.id = ?
+        GROUP BY t.id
+      `;
     
-    if (topics.length === 0) {
+    const params = language ? [language, id] : [id];
+    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    
+    if (rows.length === 0) {
       return null;
     }
-    const topic = topics[0];
-
-    // Fetch translations
-    const translationQuery = language
-      ? 'SELECT * FROM topic_translations WHERE topic_id = ? AND language_code = ?'
-      : 'SELECT * FROM topic_translations WHERE topic_id = ?';
     
-    const translationParams = language ? [id, language] : [id];
-    const [translationsRows] = await connection.execute<RowDataPacket[]>(
-      translationQuery,
-      translationParams
-    );
-    const translations = translationsRows as TopicTranslation[];
-
+    const row = rows[0];
+    const translationsJson = row.translations_json;
+    let translations: TopicTranslation[] = [];
+    
+    if (translationsJson && translationsJson !== 'null') {
+      const parsed = typeof translationsJson === 'string' 
+        ? JSON.parse(translationsJson) 
+        : translationsJson;
+      // Filter out null entries (from LEFT JOIN with no match)
+      translations = parsed.filter((t: TopicTranslation | null) => t && t.id !== null);
+    }
+    
     return {
-      ...topic,
+      id: row.id,
+      slug: row.slug,
+      sort_order: row.sort_order,
       translations,
     };
   } finally {
@@ -108,32 +168,65 @@ export async function getTopicBySlug(slug: string, language?: string): Promise<T
   const connection = await getConnection();
   
   try {
-    // Fetch topic
-    const [topicsRows] = await connection.execute<RowDataPacket[]>(
-      'SELECT * FROM topics WHERE slug = ?',
-      [slug]
-    );
-    const topics = topicsRows as Topic[];
+    const query = language
+      ? `
+        SELECT 
+          t.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', tt.id,
+              'topic_id', tt.topic_id,
+              'language_code', tt.language_code,
+              'label', tt.label,
+              'description', tt.description
+            )
+          ) as translations_json
+        FROM topics t
+        LEFT JOIN topic_translations tt ON tt.topic_id = t.id AND tt.language_code = ?
+        WHERE t.slug = ?
+        GROUP BY t.id
+      `
+      : `
+        SELECT 
+          t.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', tt.id,
+              'topic_id', tt.topic_id,
+              'language_code', tt.language_code,
+              'label', tt.label,
+              'description', tt.description
+            )
+          ) as translations_json
+        FROM topics t
+        LEFT JOIN topic_translations tt ON tt.topic_id = t.id
+        WHERE t.slug = ?
+        GROUP BY t.id
+      `;
     
-    if (topics.length === 0) {
+    const params = language ? [language, slug] : [slug];
+    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    
+    if (rows.length === 0) {
       return null;
     }
-    const topic = topics[0];
-
-    // Fetch translations
-    const translationQuery = language
-      ? 'SELECT * FROM topic_translations WHERE topic_id = ? AND language_code = ?'
-      : 'SELECT * FROM topic_translations WHERE topic_id = ?';
     
-    const translationParams = language ? [topic.id, language] : [topic.id];
-    const [translationsRows] = await connection.execute<RowDataPacket[]>(
-      translationQuery,
-      translationParams
-    );
-    const translations = translationsRows as TopicTranslation[];
-
+    const row = rows[0];
+    const translationsJson = row.translations_json;
+    let translations: TopicTranslation[] = [];
+    
+    if (translationsJson && translationsJson !== 'null') {
+      const parsed = typeof translationsJson === 'string' 
+        ? JSON.parse(translationsJson) 
+        : translationsJson;
+      // Filter out null entries (from LEFT JOIN with no match)
+      translations = parsed.filter((t: TopicTranslation | null) => t && t.id !== null);
+    }
+    
     return {
-      ...topic,
+      id: row.id,
+      slug: row.slug,
+      sort_order: row.sort_order,
       translations,
     };
   } finally {
