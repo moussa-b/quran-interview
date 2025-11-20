@@ -20,11 +20,14 @@ The codebase follows Next.js best practices with clear separation of concerns:
 lib/api/
 ├── clients/              # External API integrations
 │   └── quran/           # Quran Foundation API client
-│       ├── auth.ts
-│       ├── client.ts
-│       ├── types.ts
-│       ├── index.ts
-│       └── README.md
+│       ├── config.ts    # Shared configuration utilities
+│       ├── request.ts   # Authenticated request handler
+│       ├── auth.ts      # OAuth2 token management
+│       ├── client.ts    # Main API methods
+│       ├── translations.ts  # Translation resource manager
+│       ├── types.ts     # TypeScript type definitions
+│       ├── index.ts     # Public exports
+│       └── README.md    # Detailed documentation
 ├── services/            # Internal business logic & database operations
 │   ├── types.ts         # Centralized type definitions
 │   ├── topics/          # Topics service
@@ -46,7 +49,14 @@ lib/api/
 
 ## Quran Foundation API Integration
 
-The Quran client (`lib/api/clients/quran/`) provides integration with the Quran Foundation API, including OAuth2 authentication and content fetching.
+The Quran client (`lib/api/clients/quran/`) provides integration with the Quran Foundation API, including:
+- ✅ OAuth2 authentication with automatic token refresh
+- ✅ Chapter and verse fetching with translation support
+- ✅ Translation resource management with caching
+- ✅ Verse range queries for batch fetching
+- ✅ Full TypeScript support with comprehensive types
+
+See [`lib/api/clients/quran/README.md`](./clients/quran/README.md) for detailed documentation.
 
 ## Setup Instructions
 
@@ -147,26 +157,76 @@ import { getVerse } from '@/lib/api/clients/quran';
 export default async function VersePage({ 
   params 
 }: { 
-  params: { chapterId: string; verseNumber: string } 
+  params: { chapterId: string; verseNumber: string; locale: string } 
 }) {
   try {
+    // Fetch verse with translations
     const { verse } = await getVerse(
       parseInt(params.chapterId),
-      parseInt(params.verseNumber)
+      parseInt(params.verseNumber),
+      params.locale,
+      true  // Include translations
     );
     
     return (
       <div>
         <h1>Verse {verse.verse_key}</h1>
-        <p>Page: {verse.page_number}</p>
-        <p>Juz: {verse.juz_number}</p>
-        <p>Hizb: {verse.hizb_number}</p>
-        {verse.sajdah_number && <p>Sajdah: {verse.sajdah_number}</p>}
+        {/* Arabic text */}
+        {verse.text_uthmani && (
+          <p className="arabic text-2xl" dir="rtl">{verse.text_uthmani}</p>
+        )}
+        {/* Translation */}
+        {verse.translations && verse.translations.length > 0 && (
+          <p className="translation">{verse.translations[0].text}</p>
+        )}
+        <p>Page: {verse.page_number} | Juz: {verse.juz_number}</p>
       </div>
     );
   } catch (error) {
     console.error('Error fetching verse:', error);
     return <div>Error loading verse</div>;
+  }
+}
+```
+
+#### Fetching a Range of Verses
+
+```typescript
+import { getVersesByRange } from '@/lib/api/clients/quran';
+
+export default async function VersesRangePage({ 
+  params 
+}: { 
+  params: { chapterId: string; startVerse: string; endVerse: string; locale: string } 
+}) {
+  try {
+    const { verses } = await getVersesByRange(
+      parseInt(params.chapterId),
+      parseInt(params.startVerse),
+      parseInt(params.endVerse),
+      params.locale,
+      true  // Include translations
+    );
+    
+    return (
+      <div>
+        <h1>Verses {verses[0].verse_key} - {verses[verses.length - 1].verse_key}</h1>
+        {verses.map((verse) => (
+          <div key={verse.id} className="verse-item">
+            <h3>Verse {verse.verse_number}</h3>
+            {verse.text_uthmani && (
+              <p className="arabic" dir="rtl">{verse.text_uthmani}</p>
+            )}
+            {verse.translations && verse.translations[0] && (
+              <p>{verse.translations[0].text}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  } catch (error) {
+    console.error('Error fetching verses:', error);
+    return <div>Error loading verses</div>;
   }
 }
 ```
@@ -206,27 +266,50 @@ lib/api/
 
 ### Files in `clients/quran/`
 
-- **`types.ts`**: TypeScript type definitions for API responses
+- **`config.ts`**: Shared configuration utilities (base URL, client ID)
+- **`request.ts`**: Centralized authenticated request handler
 - **`auth.ts`**: OAuth2 token manager with automatic caching and refresh
-- **`client.ts`**: Main API client with methods for fetching data
-- **`index.ts`**: Barrel exports for easy importing
+- **`client.ts`**: Main API client with methods for fetching chapters and verses
+- **`translations.ts`**: Translation resource manager with caching
+- **`types.ts`**: TypeScript type definitions for API responses
+- **`index.ts`**: Public API exports
 
-### Token Management
+### Features
 
-The OAuth2 token manager:
+#### Token Management
 - Automatically fetches access tokens using client credentials
 - Caches tokens in memory
 - Auto-refreshes tokens before expiration (60s buffer)
 - Uses Basic Authentication (client_id:client_secret)
 
+#### Translation Management
+- Fetches available translations from `/resources/translations` endpoint
+- Caches translation IDs by language to minimize API calls
+- Provides fallback translation IDs for common languages (en: 131, fr: 136)
+- Automatically selects appropriate translation for each language
+
 ### API Flow
 
+**Standard Request:**
 ```
-1. Call getChapters()
-2. auth.ts checks if cached token is valid
-3. If invalid/expired, fetch new token from OAuth2 endpoint
-4. Make authenticated request to content API
-5. Return typed response
+1. Call getChapters() or other method
+2. client.ts calls makeAuthenticatedRequest() from request.ts
+3. request.ts gets config from config.ts
+4. request.ts calls getAccessToken() from auth.ts
+5. auth.ts checks if cached token is valid
+6. If invalid/expired, fetch new token from OAuth2 endpoint
+7. Make authenticated request to content API
+8. Return typed response
+```
+
+**Verse with Translation:**
+```
+1. Call getVerse(2, 255, 'en', true)
+2. client.ts calls getTranslationId('en') from translations.ts
+3. Check cache for translation ID; if not cached, fetch from API
+4. Build endpoint: /verses/by_key/2:255?fields=text_uthmani&translations=131
+5. Make authenticated request via request.ts
+6. Return verse with Arabic text and translation
 ```
 
 ## API Reference
@@ -270,14 +353,15 @@ console.log(chapter.name_simple); // "Al-Baqarah"
 const { chapter: chapterFr } = await getChapter(2, 'fr');
 ```
 
-### `getVerse(chapterId: number, verseNumber: number, language?: string)`
+### `getVerse(chapterId: number, verseNumber: number, language?: string, includeTranslations?: boolean)`
 
-Fetches a single verse by chapter ID and verse number.
+Fetches a single verse by chapter ID and verse number, optionally with translations.
 
 **Parameters:**
 - `chapterId` (number): Chapter ID, must be between 1 and 114
 - `verseNumber` (number): Verse number within the chapter, must be greater than 0
 - `language` (string, optional): Language code for localized content (e.g., 'en', 'fr', 'ar')
+- `includeTranslations` (boolean, optional): Whether to include translations (default: false)
 
 **Returns:** `Promise<VerseResponse>`
 
@@ -285,12 +369,51 @@ Fetches a single verse by chapter ID and verse number.
 
 **Example:**
 ```typescript
+// Without translation
 const { verse } = await getVerse(2, 5);
 console.log(verse.verse_key); // "2:5"
-console.log(verse.page_number); // 2
 
-// With language
-const { verse: verseFr } = await getVerse(2, 5, 'fr');
+// With translation
+const { verse } = await getVerse(2, 5, 'en', true);
+console.log(verse.text_uthmani); // Arabic text
+console.log(verse.translations); // Array of translations
+```
+
+### `getVersesByRange(chapterId: number, startVerse: number, endVerse: number | null, language?: string, includeTranslations?: boolean)`
+
+Fetches multiple verses in a range.
+
+**Parameters:**
+- `chapterId` (number): Chapter ID, must be between 1 and 114
+- `startVerse` (number): Starting verse number
+- `endVerse` (number | null): Ending verse number (null for single verse)
+- `language` (string, optional): Language code
+- `includeTranslations` (boolean, optional): Whether to include translations (default: false)
+
+**Returns:** `Promise<VersesResponse>`
+
+**Throws:** Error if chapter ID or verse numbers are invalid
+
+**Example:**
+```typescript
+// Fetch verses 1-5 of chapter 2 with translations
+const { verses } = await getVersesByRange(2, 1, 5, 'en', true);
+console.log(verses.length); // 5
+```
+
+### `getTranslationId(language: string)`
+
+Gets the translation resource ID for a specific language. Results are cached to minimize API calls.
+
+**Parameters:**
+- `language` (string): Language code (e.g., 'en', 'fr')
+
+**Returns:** `Promise<number>` - Translation resource ID
+
+**Example:**
+```typescript
+const translationId = await getTranslationId('en');
+// Returns: 131 (Dr. Mustafa Khattab, the Clear Quran)
 ```
 
 ### Types
@@ -335,33 +458,55 @@ interface Verse {
   sajdah_number: number | null;
   page_number: number;
   juz_number: number;
+  text_uthmani?: string;         // Arabic text (when requested)
+  translations?: Translation[];   // Translations (when requested)
+}
+
+interface Translation {
+  id: number;
+  resource_id: number;
+  text: string;
+  resource_name?: string;
+  language_name?: string;
+}
+
+interface VersesResponse {
+  verses: Verse[];
 }
 ```
 
 ## Extending the API Client
 
-To add more endpoints, extend the `lib/api/clients/quran/client.ts` file:
+To add more endpoints:
 
+1. Add response types to `lib/api/clients/quran/types.ts`
+2. Add the method to `lib/api/clients/quran/client.ts` using `makeAuthenticatedRequest()`
+3. Export the method from `lib/api/clients/quran/index.ts`
+4. Update documentation
+
+**Example:**
 ```typescript
-// In lib/api/clients/quran/client.ts
-
-export async function getChapterVerses(chapterId: number): Promise<ChapterVersesResponse> {
-  if (chapterId < 1 || chapterId > 114) {
-    throw new Error(`Invalid chapter ID: ${chapterId}. Must be between 1 and 114.`);
-  }
-  return makeAuthenticatedRequest<ChapterVersesResponse>(`/chapters/${chapterId}/verses`);
+// In lib/api/clients/quran/types.ts
+export interface JuzResponse {
+  juz: Juz;
 }
 
-// Add to quranClient object
-export const quranClient = {
-  getChapters,
-  getChapter,
-  getVerse,
-  getChapterVerses, // <-- Add here
-};
+// In lib/api/clients/quran/client.ts
+import { makeAuthenticatedRequest } from './request';
+
+export async function getJuz(id: number, language?: string): Promise<JuzResponse> {
+  if (id < 1 || id > 30) {
+    throw new Error('Invalid juz ID. Must be between 1 and 30.');
+  }
+  return makeAuthenticatedRequest<JuzResponse>(`/juzs/${id}`, language);
+}
+
+// In lib/api/clients/quran/index.ts
+export { getJuz } from './client';
+export type { JuzResponse } from './types';
 ```
 
-Don't forget to add corresponding TypeScript types in `lib/api/clients/quran/types.ts` and export them in `lib/api/clients/quran/index.ts`.
+The `makeAuthenticatedRequest()` function from `request.ts` handles all authentication, headers, and error handling automatically.
 
 ## Topics Taxonomy Services
 

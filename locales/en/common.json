@@ -16,7 +16,11 @@
     "subcategories": "Subcategories",
     "chapters": "Chapters",
     "verses": "Verses",
-    "viewTopic": "View topic"
+    "items": "Items",
+    "references": "References",
+    "viewTopic": "View topic",
+    "item": "item",
+    "noItemsAvailable": "No items available"
   },
   "language": {
     "en": "English",
@@ -24,6 +28,23 @@
   },
   "actions": {
     "changeLanguage": "Change language"
+  },
+  "verse": {
+    "viewVerse": "View Verse",
+    "backToChapter": "Back to Chapter",
+    "showTranslation": "Show Translation",
+    "hideTranslation": "Hide Translation",
+    "loading": "Loading verse...",
+    "error": "Failed to load verse",
+    "verseNumber": "Verse"
+  },
+  "chapter": {
+    "chapter": "Chapter",
+    "verses": "Verses",
+    "revelation": "Revelation",
+    "order": "Order",
+    "pages": "Pages",
+    "loading": "Loading..."
   }
 }
 

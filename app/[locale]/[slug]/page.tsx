@@ -3,6 +3,7 @@ import { getDictionary, isLocale } from '@/lib/i18n/config';
 import { getTopicById, getTopicBySlug } from '@/lib/api/services/topics';
 import { getCategories } from '@/lib/api/services/categories';
 import { getSubcategories } from '@/lib/api/services/subcategories';
+import { getItems } from '@/lib/api/services/items';
 import { CategoryAccordion } from '@/components/common/CategoryAccordion';
 import type { TopicWithTranslations } from '@/lib/api/services/types';
 
@@ -41,16 +42,56 @@ export default async function TopicPage({ params }: TopicPageProps) {
   // Fetch categories for this topic
   const categories = await getCategories(topic.id, localeParam);
 
-  // Fetch subcategories for each category
-  const categoriesWithSubcategories = await Promise.all(
+  // Fetch subcategories and items for each category
+  const categoriesWithSubcategoriesAndItems = await Promise.all(
     categories.map(async (category) => {
       const subcategories = await getSubcategories(category.id, localeParam);
+      
+      // Fetch items for each subcategory
+      const subcategoriesWithItems = await Promise.all(
+        subcategories.map(async (subcategory) => {
+          const items = await getItems(undefined, subcategory.id, localeParam);
+          return {
+            ...subcategory,
+            items,
+          };
+        })
+      );
+      
+      // Fetch items directly under this category (not under subcategories)
+      const categoryItems = await getItems(category.id, undefined, localeParam);
+      
       return {
         ...category,
-        subcategories,
+        subcategories: subcategoriesWithItems,
+        items: categoryItems,
       };
     })
   );
+
+  // Calculate metadata: unique chapters and total verses
+  const allItems = categoriesWithSubcategoriesAndItems.flatMap(cat => [
+    ...cat.items,
+    ...cat.subcategories.flatMap(sub => sub.items)
+  ]);
+  
+  const uniqueChapters = new Set<number>();
+  let totalVerses = 0;
+  
+  allItems.forEach(item => {
+    item.quran_refs.forEach(ref => {
+      uniqueChapters.add(ref.chapter);
+      // Count verses in the reference
+      if (ref.end_verse !== null) {
+        totalVerses += (ref.end_verse - ref.start_verse + 1);
+      } else {
+        totalVerses += 1;
+      }
+    });
+  });
+  
+  const chaptersCount = uniqueChapters.size;
+  const versesCount = totalVerses;
 
   return (
     <div className="min-h-screen bg-zinc-50 px-4 py-12 dark:bg-black">
@@ -84,30 +125,31 @@ export default async function TopicPage({ params }: TopicPageProps) {
             </div>
             <div className="flex flex-col">
               <span className="text-3xl font-bold text-primary">
-                {categoriesWithSubcategories.reduce((sum, cat) => sum + cat.subcategories.length, 0)}
+                {categoriesWithSubcategoriesAndItems.reduce((sum, cat) => sum + cat.subcategories.length, 0)}
               </span>
               <span className="text-sm text-zinc-500 dark:text-zinc-400">{dictionary.topics.subcategories}</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-3xl font-bold text-primary">0</span>
+              <span className="text-3xl font-bold text-primary">{chaptersCount}</span>
               <span className="text-sm text-zinc-500 dark:text-zinc-400">{dictionary.topics.chapters}</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-3xl font-bold text-primary">0</span>
+              <span className="text-3xl font-bold text-primary">{versesCount}</span>
               <span className="text-sm text-zinc-500 dark:text-zinc-400">{dictionary.topics.verses}</span>
             </div>
           </div>
         </div>
 
         {/* Categories Accordion */}
-        {categoriesWithSubcategories.length > 0 && (
+        {categoriesWithSubcategoriesAndItems.length > 0 && (
           <div className="mt-8 rounded-3xl bg-white p-10 shadow-lg dark:bg-zinc-950">
             <h2 className="mb-6 text-2xl font-semibold text-zinc-900 dark:text-white">
               {dictionary.topics.categories}
             </h2>
             <CategoryAccordion 
-              categories={categoriesWithSubcategories} 
-              locale={localeParam} 
+              categories={categoriesWithSubcategoriesAndItems} 
+              locale={localeParam}
+              dictionary={dictionary}
             />
           </div>
         )}

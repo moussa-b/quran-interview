@@ -85,11 +85,11 @@ The project includes a fully-typed API client for the Quran Foundation API with 
 ### Quick Examples
 
 ```typescript
-import { getChapters, getChapter, getVerse } from '@/lib/api';
+import { getChapters, getChapter, getVerse, getVersesByRange } from '@/lib/api';
 
 // Fetch all chapters with language support
 export default async function ChaptersPage({ locale }: { locale: string }) {
-  const { chapters } = await getChapters(locale); // Pass current locale
+  const { chapters } = await getChapters(locale);
   
   return (
     <ul>
@@ -115,7 +115,7 @@ export async function ChapterDetailPage({ id, locale }: { id: number; locale: st
   );
 }
 
-// Fetch a single verse
+// Fetch a single verse with translation
 export async function VersePage({ 
   chapterId, 
   verseNumber, 
@@ -123,14 +123,47 @@ export async function VersePage({
 }: { 
   chapterId: number; 
   verseNumber: number; 
-  locale?: string 
+  locale: string 
 }) {
-  const { verse } = await getVerse(chapterId, verseNumber, locale);
+  const { verse } = await getVerse(chapterId, verseNumber, locale, true);
   
   return (
     <div>
       <h2>Verse {verse.verse_key}</h2>
+      {verse.text_uthmani && (
+        <p className="arabic text-2xl" dir="rtl">{verse.text_uthmani}</p>
+      )}
+      {verse.translations && verse.translations[0] && (
+        <p>{verse.translations[0].text}</p>
+      )}
       <p>Page: {verse.page_number} | Juz: {verse.juz_number}</p>
+    </div>
+  );
+}
+
+// Fetch a range of verses
+export async function VersesRangePage({ 
+  chapterId, 
+  startVerse,
+  endVerse,
+  locale 
+}: { 
+  chapterId: number; 
+  startVerse: number;
+  endVerse: number;
+  locale: string 
+}) {
+  const { verses } = await getVersesByRange(chapterId, startVerse, endVerse, locale, true);
+  
+  return (
+    <div>
+      {verses.map((verse) => (
+        <div key={verse.id}>
+          <h3>Verse {verse.verse_number}</h3>
+          {verse.text_uthmani && <p dir="rtl">{verse.text_uthmani}</p>}
+          {verse.translations?.[0] && <p>{verse.translations[0].text}</p>}
+        </div>
+      ))}
     </div>
   );
 }
@@ -139,8 +172,10 @@ export async function VersePage({
 The API client handles:
 - ✅ OAuth2 authentication with automatic token refresh
 - ✅ Token caching to minimize authentication requests
+- ✅ Translation management with intelligent caching
+- ✅ Verse range queries for batch fetching
 - ✅ Full TypeScript support
-- ✅ Error handling and retry logic
+- ✅ Error handling and validation
 
 ## Health Check Endpoint
 

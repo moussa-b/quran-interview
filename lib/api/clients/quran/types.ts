@@ -54,6 +54,17 @@ export interface ChapterResponse {
 }
 
 /**
+ * Translation data for a verse
+ */
+export interface Translation {
+  id: number;
+  resource_id: number;
+  text: string;
+  resource_name?: string;
+  language_name?: string;
+}
+
+/**
  * Verse data from Quran API
  */
 export interface Verse {
@@ -67,6 +78,8 @@ export interface Verse {
   sajdah_number: number | null;
   page_number: number;
   juz_number: number;
+  text_uthmani?: string;
+  translations?: Translation[];
 }
 
 /**
@@ -74,5 +87,12 @@ export interface Verse {
  */
 export interface VerseResponse {
   verse: Verse;
+}
+
+/**
+ * Multiple Verses API Response
+ */
+export interface VersesResponse {
+  verses: Verse[];
 }
 

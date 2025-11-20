@@ -1,78 +1,6 @@
-import { getAccessToken } from './auth';
-import { ChapterResponse, ChaptersResponse, VerseResponse } from './types';
-
-/**
- * Get the content API base URL from environment variables
- */
-function getContentApiBaseUrl(): string {
-  const baseUrl = process.env.QURAN_CONTENT_API_BASE_URL;
-  if (!baseUrl) {
-    throw new Error('QURAN_CONTENT_API_BASE_URL environment variable is not set');
-  }
-  return baseUrl;
-}
-
-/**
- * Get the client ID from environment variables
- */
-function getClientId(): string {
-  const clientId = process.env.QURAN_CLIENT_ID;
-  if (!clientId) {
-    throw new Error('QURAN_CLIENT_ID environment variable is not set');
-  }
-  return clientId;
-}
-
-/**
- * Make an authenticated request to the Quran API
- *
- * @param endpoint - API endpoint path
- * @param language - Language code for localized content (e.g., 'en', 'fr', 'ar')
- * @param options - Additional fetch options
- */
-async function makeAuthenticatedRequest<T>(
-  endpoint: string,
-  language?: string,
-  options: RequestInit = {}
-): Promise<T> {
-  try {
-    // Get valid access token
-    const accessToken = await getAccessToken();
-    const clientId = getClientId();
-    const contentApiBaseUrl = getContentApiBaseUrl();
-
-    // Build URL with language query parameter if provided
-    let url = `${contentApiBaseUrl}${endpoint}`;
-    if (language) {
-      const separator = endpoint.includes('?') ? '&' : '?';
-      url = `${url}${separator}language=${encodeURIComponent(language)}`;
-    }
-
-    // Make the API request with authentication headers
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Accept': 'application/json',
-        'x-auth-token': accessToken,
-        'x-client-id': clientId,
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `API request failed: ${response.status} ${response.statusText}. ${errorText}`
-      );
-    }
-
-    const data = await response.json();
-    return data as T;
-  } catch (error) {
-    console.error(`Error making request to ${endpoint}:`, error);
-    throw error;
-  }
-}
+import { getTranslationId } from './translations';
+import { makeAuthenticatedRequest } from './request';
+import { ChapterResponse, ChaptersResponse, VerseResponse, VersesResponse } from './types';
 
 /**
  * Fetch all chapters from the Quran API
@@ -124,6 +52,7 @@ export async function getChapter(id: number, language?: string): Promise<Chapter
  * @param chapterId - Chapter ID (1-114)
  * @param verseNumber - Verse number within the chapter
  * @param language - Optional language code for localized content (e.g., 'en', 'fr', 'ar')
+ * @param includeTranslations - Whether to include translations (default: false)
  * @returns Promise with verse data
  * @throws Error if the request fails or parameters are invalid
  * 
@@ -132,11 +61,16 @@ export async function getChapter(id: number, language?: string): Promise<Chapter
  * const response = await getVerse(2, 5);
  * console.log(response.verse.verse_key); // "2:5"
  *
- * // With language
- * const responseFr = await getVerse(2, 5, 'fr');
+ * // With language and translations
+ * const responseFr = await getVerse(2, 5, 'fr', true);
  * ```
  */
-export async function getVerse(chapterId: number, verseNumber: number, language?: string): Promise<VerseResponse> {
+export async function getVerse(
+  chapterId: number, 
+  verseNumber: number, 
+  language?: string,
+  includeTranslations: boolean = false
+): Promise<VerseResponse> {
   if (chapterId < 1 || chapterId > 114) {
     throw new Error(`Invalid chapter ID: ${chapterId}. Must be between 1 and 114.`);
   }
@@ -145,7 +79,72 @@ export async function getVerse(chapterId: number, verseNumber: number, language?
   }
   
   const verseKey = `${chapterId}:${verseNumber}`;
-  return makeAuthenticatedRequest<VerseResponse>(`/verses/by_key/${verseKey}`, language);
+  let endpoint = `/verses/by_key/${verseKey}`;
+  
+  // Add text_uthmani and translations if requested
+  if (includeTranslations && language) {
+    // Get the appropriate translation ID for the language
+    const translationId = await getTranslationId(language);
+    endpoint += `?fields=text_uthmani&translations=${translationId}`;
+  } else if (includeTranslations) {
+    // Default to English if no language specified
+    endpoint += `?fields=text_uthmani&translations=131`;
+  }
+  
+  return makeAuthenticatedRequest<VerseResponse>(endpoint, language);
+}
+
+/**
+ * Fetch multiple verses by range (e.g., 2:5-10)
+ * 
+ * @param chapterId - Chapter ID (1-114)
+ * @param startVerse - Starting verse number
+ * @param endVerse - Ending verse number (null for single verse)
+ * @param language - Optional language code for localized content
+ * @param includeTranslations - Whether to include translations (default: false)
+ * @returns Promise with verses data
+ * @throws Error if the request fails or parameters are invalid
+ * 
+ * @example
+ * ```typescript
+ * const response = await getVersesByRange(2, 5, 10, 'en', true);
+ * console.log(response.verses.length); // 6 (verses 5-10 inclusive)
+ * ```
+ */
+export async function getVersesByRange(
+  chapterId: number,
+  startVerse: number,
+  endVerse: number | null,
+  language?: string,
+  includeTranslations: boolean = false
+): Promise<VersesResponse> {
+  if (chapterId < 1 || chapterId > 114) {
+    throw new Error(`Invalid chapter ID: ${chapterId}. Must be between 1 and 114.`);
+  }
+  if (startVerse < 1) {
+    throw new Error(`Invalid start verse: ${startVerse}. Must be greater than 0.`);
+  }
+  
+  // If no end verse or same as start, fetch single verse
+  if (endVerse === null || endVerse === startVerse) {
+    const response = await getVerse(chapterId, startVerse, language, includeTranslations);
+    return { verses: [response.verse] };
+  }
+  
+  if (endVerse < startVerse) {
+    throw new Error(`End verse (${endVerse}) must be greater than or equal to start verse (${startVerse}).`);
+  }
+  
+  // Fetch all verses in the range
+  const versePromises: Promise<VerseResponse>[] = [];
+  for (let i = startVerse; i <= endVerse; i++) {
+    versePromises.push(getVerse(chapterId, i, language, includeTranslations));
+  }
+  
+  const responses = await Promise.all(versePromises);
+  return {
+    verses: responses.map(r => r.verse)
+  };
 }
 
 /**
@@ -155,5 +154,6 @@ export const quranClient = {
   getChapters,
   getChapter,
   getVerse,
+  getVersesByRange,
 };
 

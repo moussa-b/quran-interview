@@ -16,7 +16,11 @@
     "subcategories": "Sous-catégories",
     "chapters": "Chapitres",
     "verses": "Versets",
-    "viewTopic": "Voir le thème"
+    "items": "Éléments",
+    "references": "Références",
+    "viewTopic": "Voir le thème",
+    "item": "élément",
+    "noItemsAvailable": "Aucun élément disponible"
   },
   "language": {
     "en": "English",
@@ -24,6 +28,23 @@
   },
   "actions": {
     "changeLanguage": "Changer de langue"
+  },
+  "verse": {
+    "viewVerse": "Voir le verset",
+    "backToChapter": "Retour au chapitre",
+    "showTranslation": "Afficher la traduction",
+    "hideTranslation": "Masquer la traduction",
+    "loading": "Chargement du verset...",
+    "error": "Échec du chargement du verset",
+    "verseNumber": "Verset"
+  },
+  "chapter": {
+    "chapter": "Chapitre",
+    "verses": "Versets",
+    "revelation": "Révélation",
+    "order": "Ordre",
+    "pages": "Pages",
+    "loading": "Chargement..."
   }
 }
 

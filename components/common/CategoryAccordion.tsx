@@ -6,22 +6,40 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import type { CategoryWithTranslations, SubcategoryWithTranslations } from '@/lib/api/services/types';
+import { SubcategoryAccordion } from './SubcategoryAccordion';
+import { QuranReferenceBadge } from './QuranReferenceBadge';
+import type { 
+  CategoryWithTranslations, 
+  SubcategoryWithTranslations,
+  ItemWithDetails 
+} from '@/lib/api/services/types';
 
-interface CategoryWithSubcategories extends CategoryWithTranslations {
-  subcategories: SubcategoryWithTranslations[];
+interface SubcategoryWithItems extends SubcategoryWithTranslations {
+  items: ItemWithDetails[];
+}
+
+interface CategoryWithSubcategoriesAndItems extends CategoryWithTranslations {
+  subcategories: SubcategoryWithItems[];
+  items: ItemWithDetails[];
 }
 
 interface CategoryAccordionProps {
-  categories: CategoryWithSubcategories[];
+  categories: CategoryWithSubcategoriesAndItems[];
   locale: string;
+  dictionary: {
+    topics: {
+      item: string;
+      items: string;
+      noItemsAvailable: string;
+    };
+  };
 }
 
-export function CategoryAccordion({ categories, locale }: CategoryAccordionProps) {
+export function CategoryAccordion({ categories, locale, dictionary }: CategoryAccordionProps) {
   if (!categories || categories.length === 0) {
     return (
       <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
-        No categories available
+        {dictionary.topics.noItemsAvailable}
       </div>
     );
   }
@@ -48,35 +66,58 @@ export function CategoryAccordion({ categories, locale }: CategoryAccordionProps
               </div>
             </AccordionTrigger>
             <AccordionContent>
-              {category.subcategories && category.subcategories.length > 0 ? (
-                <ul className="space-y-3 mt-2">
-                  {category.subcategories.map((subcategory) => {
-                    const subcategoryTranslation = subcategory.translations.find(
-                      (t) => t.language_code === locale
-                    ) || subcategory.translations[0];
+              <div className="space-y-6 mt-2">
+                {/* Items directly under category */}
+                {category.items && category.items.length > 0 && (
+                  <div className="space-y-3">
+                    {category.items.map((item) => {
+                      const itemTranslation = item.translations.find(
+                        (t) => t.language_code === locale
+                      ) || item.translations[0];
 
-                    return (
-                      <li
-                        key={subcategory.id}
-                        className="border-l-2 border-zinc-200 dark:border-zinc-700 pl-4 py-2"
-                      >
-                        <span className="font-medium text-zinc-900 dark:text-white">
-                          {subcategoryTranslation?.label || subcategory.slug}
-                        </span>
-                        {subcategoryTranslation?.description && (
-                          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                            {subcategoryTranslation.description}
-                          </p>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
-                  No subcategories available
-                </p>
-              )}
+                      return (
+                        <div
+                          key={item.id}
+                          className="border-l-2 border-blue-400 dark:border-blue-600 pl-4 py-2 bg-blue-50/50 dark:bg-blue-950/20 rounded-r"
+                        >
+                          <div className="font-medium text-zinc-900 dark:text-white">
+                            {itemTranslation?.label || item.slug}
+                          </div>
+                          {itemTranslation?.description && (
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                              {itemTranslation.description}
+                            </p>
+                          )}
+                          {item.quran_refs && item.quran_refs.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {item.quran_refs.map((ref) => (
+                                <QuranReferenceBadge 
+                                  key={ref.id}
+                                  reference={ref}
+                                  variant="blue"
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Subcategories with their items (nested accordion) */}
+                {category.subcategories && category.subcategories.length > 0 ? (
+                  <SubcategoryAccordion 
+                    subcategories={category.subcategories}
+                    locale={locale}
+                    dictionary={dictionary}
+                  />
+                ) : category.items.length === 0 ? (
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
+                    {dictionary.topics.noItemsAvailable}
+                  </p>
+                ) : null}
+              </div>
             </AccordionContent>
           </AccordionItem>
         );

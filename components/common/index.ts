@@ -1,3 +1,6 @@
 export { CategoryAccordion } from './CategoryAccordion'
+export { SubcategoryAccordion } from './SubcategoryAccordion'
+export { QuranReferenceBadge } from './QuranReferenceBadge'
 export { ChapterCard } from './ChapterCard'
 export { TopicCard } from './TopicCard'
+export { VerseDisplay } from './VerseDisplay'
