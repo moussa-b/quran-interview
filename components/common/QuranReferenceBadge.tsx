@@ -215,7 +215,6 @@ export function QuranReferenceBadge({ reference, variant }: QuranReferenceBadgeP
               verses={verses}
               loading={verseLoading}
               error={verseError}
-              locale={locale}
               dictionary={{
                 showTranslation: tVerse('showTranslation', 'Show Translation'),
                 hideTranslation: tVerse('hideTranslation', 'Hide Translation'),
