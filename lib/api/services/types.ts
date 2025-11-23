@@ -30,6 +30,10 @@ export interface TopicTranslation {
  */
 export interface TopicWithTranslations extends Topic {
   translations: TopicTranslation[];
+  categories_count: number;
+  subcategories_count: number;
+  chapters_count: number;
+  verses_count: number;
 }
 
 /**

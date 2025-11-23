@@ -37,19 +37,19 @@ export function TopicCard({ topic, locale, translations }: TopicCardProps) {
       <CardContent>
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col">
-            <span className="text-2xl font-bold text-primary">0</span>
+            <span className="text-2xl font-bold text-primary">{topic.categories_count ?? 0}</span>
             <span className="text-sm text-muted-foreground">{translations.categories}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-2xl font-bold text-primary">0</span>
+            <span className="text-2xl font-bold text-primary">{topic.subcategories_count ?? 0}</span>
             <span className="text-sm text-muted-foreground">{translations.subcategories}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-2xl font-bold text-primary">0</span>
+            <span className="text-2xl font-bold text-primary">{topic.chapters_count ?? 0}</span>
             <span className="text-sm text-muted-foreground">{translations.chapters}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-2xl font-bold text-primary">0</span>
+            <span className="text-2xl font-bold text-primary">{topic.verses_count ?? 0}</span>
             <span className="text-sm text-muted-foreground">{translations.verses}</span>
           </div>
         </div>
