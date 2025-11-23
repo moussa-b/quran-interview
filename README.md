@@ -211,6 +211,77 @@ The application includes a health check endpoint at `/api/health` that monitors:
 
 This endpoint is designed to be polled by external monitoring bots (e.g., every 5 minutes) to ensure all critical services are operational.
 
+## Testing
+
+The project includes unit tests for all database query methods and Quran Foundation API client methods. Tests use real database connections and HTTP requests (no mocking), so you'll need both a database connection and valid API credentials.
+
+### Test Environment Setup
+
+1. **Create `.env.test` file** in the project root with the following variables:
+
+```bash
+# Quran Foundation API Configuration
+QURAN_AUTH_API_BASE_URL=https://prelive-oauth2.quran.foundation
+QURAN_CONTENT_API_BASE_URL=https://apis-prelive.quran.foundation/content/api/v4
+QURAN_CLIENT_ID=your_client_id_here
+QURAN_CLIENT_SECRET=your_client_secret_here
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=3308
+DB_USER=nextjs
+DB_PASSWORD=nextjs
+DB_NAME=quran
+```
+
+**Important:** Replace the placeholder values with your actual credentials. The test database should be separate from your development database or use the same setup.
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode (auto-rerun on file changes)
+npm run test:watch
+
+# Run a specific test file
+npm test -- service.test.ts
+
+# Run tests with coverage
+npm test -- --coverage
+```
+
+### Test Structure
+
+Tests are located alongside the code they test, in `__tests__` directories:
+
+- **Database Service Tests:**
+  - `lib/api/services/categories/__tests__/service.test.ts`
+  - `lib/api/services/items/__tests__/service.test.ts`
+  - `lib/api/services/subcategories/__tests__/service.test.ts`
+  - `lib/api/services/topics/__tests__/service.test.ts`
+
+- **Quran API Client Tests:**
+  - `lib/api/clients/quran/__tests__/auth.test.ts`
+  - `lib/api/clients/quran/__tests__/client.test.ts`
+  - `lib/api/clients/quran/__tests__/translations.test.ts`
+
+### Test Requirements
+
+- **Database**: Tests require a running MySQL database with the schema from `docs/db/create_db.sql`
+- **API Access**: Tests require valid Quran Foundation API credentials (same as development)
+- **Environment Variables**: All variables from `.env.test` must be set and valid
+
+### Test Assertions
+
+Current tests verify:
+- Database queries return non-null results
+- Quran Foundation API requests return status code 200 (implied by successful responses)
+- API responses are not null
+
+Content validation will be added in future iterations.
+
 ## Local Database (MySQL)
 
 A ready-made Docker Compose stack lives in `docs/db/docker-compose.yml`. It provisions MySQL, runs the schema/seed script from `docs/db/create_db.sql`, and exposes the database on port `3308`.
