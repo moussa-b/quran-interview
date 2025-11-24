@@ -2,11 +2,7 @@ import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import { I18nProvider } from '@/components/i18n/I18nProvider';
-import {
-  getDictionary,
-  isLocale,
-  locales,
-} from '@/lib/i18n/config';
+import { getDictionary, isLocale, locales, } from '@/lib/i18n/config';
 
 type LocaleLayoutProps = {
   children: ReactNode;

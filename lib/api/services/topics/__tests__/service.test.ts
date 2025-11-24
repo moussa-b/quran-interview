@@ -1,4 +1,4 @@
-import { getTopics, getTopicById, getTopicBySlug } from '@/lib/api/services/topics/service';
+import { getTopicById, getTopicBySlug, getTopics } from '@/lib/api/services/topics/service';
 
 describe('Topics Service', () => {
   describe('getTopics', () => {

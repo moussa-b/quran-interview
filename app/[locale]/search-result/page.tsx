@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getDictionary, isLocale } from '@/lib/i18n/config';
-import { searchTopics } from '@/lib/api/services/topics';
+import { searchItems } from '@/lib/api/services/items';
 import type { ItemWithDetails } from '@/lib/api/services/types';
 import { Item, ItemContent, ItemGroup } from '@/components/ui/item';
 import { ItemDetail } from '@/components/common/ItemDetail';
@@ -32,7 +32,7 @@ export default async function SearchResultPage({ params, searchParams }: SearchR
 
   let results: ItemWithDetails[] = [];
   if (normalizedQuery) {
-    results = await searchTopics(normalizedQuery, localeParam);
+    results = await searchItems(normalizedQuery, localeParam);
   }
 
   const hasResults = normalizedQuery.length > 0 && results.length > 0;

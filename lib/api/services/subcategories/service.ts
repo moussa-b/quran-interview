@@ -1,10 +1,6 @@
 import { getConnection } from '@/lib/db/connection';
 import type { RowDataPacket } from 'mysql2/promise';
-import {
-  Subcategory,
-  SubcategoryTranslation,
-  SubcategoryWithTranslations,
-} from '../types';
+import { SubcategoryTranslation, SubcategoryWithTranslations, } from '../types';
 
 /**
  * Fetch all subcategories with their translations

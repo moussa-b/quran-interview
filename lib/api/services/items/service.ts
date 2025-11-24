@@ -1,11 +1,6 @@
 import { getConnection } from '@/lib/db/connection';
 import type { RowDataPacket } from 'mysql2/promise';
-import {
-  Item,
-  ItemTranslation,
-  ItemQuranRef,
-  ItemWithDetails,
-} from '../types';
+import { ItemQuranRef, ItemTranslation, ItemWithDetails, } from '../types';
 
 /**
  * Fetch all items with their translations and Quran references
@@ -206,6 +201,118 @@ export async function getItem(id: number, language?: string): Promise<ItemWithDe
       translations,
       quran_refs,
     };
+  } finally {
+    await connection.end();
+  }
+}
+
+/**
+ * Search items by their translated label.
+ *
+ * @param query - Free text search term
+ * @param language - Optional language code to filter translations
+ */
+export async function searchItems(
+  query: string,
+  language?: string
+): Promise<ItemWithDetails[]> {
+  const trimmed = query.trim();
+
+  if (!trimmed) {
+    return [];
+  }
+
+  const connection = await getConnection();
+
+  try {
+    const likeQuery = `%${trimmed}%`;
+    const params: unknown[] = [];
+
+    if (language) {
+      params.push(language);
+    }
+
+    params.push(likeQuery);
+
+    if (language) {
+      params.push(language);
+    }
+
+    const searchQuery = `
+      SELECT 
+        i.*,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', it.id,
+              'item_id', it.item_id,
+              'language_code', it.language_code,
+              'label', it.label,
+              'description', it.description
+            )
+          )
+          FROM item_translations it
+          WHERE it.item_id = i.id
+          ${language ? 'AND it.language_code = ?' : ''}
+        ) as translations_json,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', iqr.id,
+              'item_id', iqr.item_id,
+              'chapter', iqr.chapter,
+              'start_verse', iqr.start_verse,
+              'end_verse', iqr.end_verse,
+              'metadata', iqr.metadata,
+              'created_at', iqr.created_at,
+              'updated_at', iqr.updated_at
+            )
+          )
+          FROM item_quran_refs iqr
+          WHERE iqr.item_id = i.id
+          ORDER BY iqr.chapter, iqr.start_verse
+        ) as quran_refs_json
+      FROM items i
+      INNER JOIN item_translations search_it ON search_it.item_id = i.id
+      WHERE search_it.label LIKE ?
+      ${language ? 'AND search_it.language_code = ?' : ''}
+      GROUP BY i.id
+      ORDER BY i.sort_order ASC
+    `;
+
+    const [rows] = await connection.execute<RowDataPacket[]>(searchQuery, params);
+
+    return rows.map(row => {
+      const translationsJson = row.translations_json;
+      const quranRefsJson = row.quran_refs_json;
+
+      let translations: ItemTranslation[] = [];
+      let quran_refs: ItemQuranRef[] = [];
+
+      if (translationsJson && translationsJson !== 'null') {
+        const parsed = typeof translationsJson === 'string'
+          ? JSON.parse(translationsJson)
+          : translationsJson;
+        translations = parsed.filter((t: ItemTranslation | null) => t && t.id !== null);
+      }
+
+      if (quranRefsJson && quranRefsJson !== 'null') {
+        const parsed = typeof quranRefsJson === 'string'
+          ? JSON.parse(quranRefsJson)
+          : quranRefsJson;
+        quran_refs = parsed.filter((r: ItemQuranRef | null) => r && r.id !== null);
+      }
+
+      return {
+        id: row.id,
+        category_id: row.category_id,
+        subcategory_id: row.subcategory_id,
+        slug: row.slug,
+        sort_order: row.sort_order,
+        translations,
+        quran_refs,
+      };
+    });
   } finally {
     await connection.end();
   }

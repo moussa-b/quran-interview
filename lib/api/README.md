@@ -526,28 +526,28 @@ All type definitions are centralized in `lib/api/services/types.ts` for easy sha
 **Import examples:**
 ```typescript
 // Import from specific services
-import { getTopics, getTopicById, searchTopics } from '@/lib/api/services/topics';
+import { getTopics, getTopicById } from '@/lib/api/services/topics';
 import { getCategories, getCategory } from '@/lib/api/services/categories';
-import { getItems, getItem } from '@/lib/api/services/items';
+import { getItems, getItem, searchItems } from '@/lib/api/services/items';
 
 // Import types from centralized location
 import type { TopicWithTranslations, CategoryWithTranslations } from '@/lib/api/services/types';
 
-// Perform a search (currently returns an empty list placeholder)
-const items = await searchTopics('unicité', 'fr');
+// Perform a search across items (label match with optional language filter)
+const items = await searchItems('unicité', 'fr');
 ```
 
-### Topics Search Helper
+### Items Search Helper
 
-- **Function:** `searchTopics(query: string, language?: string): Promise<ItemWithDetails[]>`
-- **Purpose:** Shared helper for the `GET /api/topics/search` route and server components, ensuring search logic stays server-side.
-- **Current behavior:** Returns an empty array placeholder until the real search implementation lands, but already enforces query trimming and language forwarding.
+- **Function:** `searchItems(query: string, language?: string): Promise<ItemWithDetails[]>`
+- **Purpose:** Shared helper for the `GET /api/items/search` route and server components, ensuring search logic stays server-side.
+- **Current behavior:** Performs a `LIKE` search on `item_translations.label`, optionally filtered by `language_code`, and returns each matching item with its translations and Quran references.
 - **Usage Example:**
   ```typescript
-  import { searchTopics } from '@/lib/api/services/topics';
+  import { searchItems } from '@/lib/api/services/items';
 
   export async function SearchResults({ q, locale }: { q: string; locale: string }) {
-    const items = await searchTopics(q, locale);
+    const items = await searchItems(q, locale);
     return items.map((item) => item.slug);
   }
   ```

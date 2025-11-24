@@ -1,4 +1,4 @@
-import { OAuth2TokenResponse, CachedToken } from './types';
+import { CachedToken, OAuth2TokenResponse } from './types';
 
 /**
  * In-memory token cache

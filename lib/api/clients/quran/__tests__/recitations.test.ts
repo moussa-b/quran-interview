@@ -1,4 +1,4 @@
-import { getRecitations, getDefaultRecitationId, clearRecitationCache } from '@/lib/api/clients/quran/recitations';
+import { clearRecitationCache, getDefaultRecitationId, getRecitations } from '@/lib/api/clients/quran/recitations';
 
 describe('Quran API Recitations', () => {
   beforeEach(() => {

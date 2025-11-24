@@ -1,4 +1,4 @@
-import { getItems, getItem } from '@/lib/api/services/items/service';
+import { getItem, getItems, searchItems } from '@/lib/api/services/items/service';
 
 describe('Items Service', () => {
   describe('getItems', () => {
@@ -59,6 +59,20 @@ describe('Items Service', () => {
     it('should return null for non-existent item', async () => {
       const result = await getItem(999999);
       expect(result).toBeNull();
+    });
+  });
+
+  describe('searchItems', () => {
+    it('should return results for a given query', async () => {
+      const result = await searchItems('His Will');
+      expect(result).not.toBeNull();
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('should respect the language filter', async () => {
+      const result = await searchItems('Sa volonté', 'fr');
+      expect(result).not.toBeNull();
+      expect(Array.isArray(result)).toBe(true);
     });
   });
 });

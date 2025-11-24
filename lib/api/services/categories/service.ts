@@ -1,10 +1,6 @@
 import { getConnection } from '@/lib/db/connection';
 import type { RowDataPacket } from 'mysql2/promise';
-import {
-  Category,
-  CategoryTranslation,
-  CategoryWithTranslations,
-} from '../types';
+import { CategoryTranslation, CategoryWithTranslations, } from '../types';
 
 /**
  * Fetch all categories with their translations

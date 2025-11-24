@@ -16,6 +16,7 @@
 export {
   getItems,
   getItem,
+  searchItems,
 } from './service';
 
 // Re-export relevant types

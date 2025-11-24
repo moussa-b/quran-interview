@@ -5,7 +5,7 @@
  */
 
 import { getAccessToken } from './auth';
-import { getContentApiBaseUrl, getClientId } from './config';
+import { getClientId, getContentApiBaseUrl } from './config';
 
 /**
  * Make an authenticated request to the Quran API

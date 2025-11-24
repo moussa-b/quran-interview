@@ -1,4 +1,4 @@
-import { getAccessToken, clearTokenCache } from '@/lib/api/clients/quran/auth';
+import { clearTokenCache, getAccessToken } from '@/lib/api/clients/quran/auth';
 
 describe('Quran API Auth', () => {
   beforeEach(() => {

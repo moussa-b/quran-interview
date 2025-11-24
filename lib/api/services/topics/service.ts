@@ -1,11 +1,6 @@
 import { getConnection } from '@/lib/db/connection';
 import type { RowDataPacket } from 'mysql2/promise';
-import {
-  ItemWithDetails,
-  Topic,
-  TopicTranslation,
-  TopicWithTranslations,
-} from '../types';
+import { TopicTranslation, TopicWithTranslations, } from '../types';
 
 /**
  * Fetch all topics with their translations
@@ -349,15 +344,3 @@ export async function getTopicBySlug(slug: string, language?: string): Promise<T
   }
 }
 
-/**
- * Search items by query string
- * Currently returns an empty list (placeholder implementation).
- *
- * @param query - User provided search text
- * @param language - Optional language for filtering translations
- */
-export async function searchTopics(query: string, language?: string): Promise<ItemWithDetails[]> {
-  void query;
-  void language;
-  return [];
-}

@@ -18,7 +18,6 @@ export {
   getTopics,
   getTopicById,
   getTopicBySlug,
-  searchTopics,
 } from './service';
 
 // Re-export relevant types

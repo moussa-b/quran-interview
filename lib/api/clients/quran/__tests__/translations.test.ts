@@ -1,4 +1,4 @@
-import { getTranslationId, clearTranslationCache } from '@/lib/api/clients/quran/translations';
+import { clearTranslationCache, getTranslationId } from '@/lib/api/clients/quran/translations';
 
 describe('Quran API Translations', () => {
   beforeEach(() => {

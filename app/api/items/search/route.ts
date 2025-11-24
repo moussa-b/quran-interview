@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { searchTopics } from '@/lib/api/services/topics';
+import { searchItems } from '@/lib/api/services/items';
 import type { ItemsResponse } from '@/lib/api/services/types';
 
 /**
- * GET /api/topics/search
+ * GET /api/items/search
  *
- * Perform a search against topic items.
+ * Perform a search against items.
  *
  * Query parameters:
  * - q (required): Search term
@@ -23,16 +23,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(emptyResponse);
     }
 
-    const items = await searchTopics(query, language);
+    const items = await searchItems(query, language);
     const response: ItemsResponse = { items };
 
     return NextResponse.json(response);
   } catch (error) {
     const err = error as Error;
-    console.error('Error searching topics:', err);
+    console.error('Error searching items:', err);
 
     return NextResponse.json(
-      { error: 'Failed to search topics', message: err.message },
+      { error: 'Failed to search items', message: err.message },
       { status: 500 }
     );
   }

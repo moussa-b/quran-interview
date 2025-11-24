@@ -1,4 +1,4 @@
-import { getChapters, getChapter, getVerse, getVersesByRange, getVerseAudio } from '@/lib/api/clients/quran/client';
+import { getChapter, getChapters, getVerse, getVerseAudio, getVersesByRange } from '@/lib/api/clients/quran/client';
 import { getDefaultRecitationId } from '@/lib/api/clients/quran/recitations';
 
 describe('Quran API Client', () => {
