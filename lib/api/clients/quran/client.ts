@@ -1,6 +1,16 @@
 import { getTranslationId } from './translations';
 import { makeAuthenticatedRequest } from './request';
-import { ChapterResponse, ChaptersResponse, VerseResponse, VersesResponse } from './types';
+import { getDefaultRecitationId } from './recitations';
+import {
+  ChapterAudioResponse,
+  ChapterResponse,
+  ChaptersResponse,
+  VerseAudioFile,
+  VerseResponse,
+  VersesResponse,
+} from './types';
+
+const AUDIO_PAGE_SIZE = 50;
 
 /**
  * Fetch all chapters from the Quran API
@@ -148,6 +158,43 @@ export async function getVersesByRange(
 }
 
 /**
+ * Fetch audio metadata for a specific verse using recitation endpoint
+ *
+ * @param chapterId - Chapter ID (1-114)
+ * @param verseNumber - Verse number within the chapter
+ * @param recitationId - Optional recitation resource id (defaults to first available)
+ * @returns Verse audio file metadata
+ */
+export async function getVerseAudio(
+  chapterId: number,
+  verseNumber: number,
+  recitationId?: number
+): Promise<VerseAudioFile> {
+  if (chapterId < 1 || chapterId > 114) {
+    throw new Error(`Invalid chapter ID: ${chapterId}. Must be between 1 and 114.`);
+  }
+  if (verseNumber < 1) {
+    throw new Error(`Invalid verse number: ${verseNumber}. Must be greater than 0.`);
+  }
+
+  const resolvedRecitationId = recitationId ?? await getDefaultRecitationId();
+  const page = Math.ceil(verseNumber / AUDIO_PAGE_SIZE);
+
+  const response = await makeAuthenticatedRequest<ChapterAudioResponse>(
+    `/recitations/${resolvedRecitationId}/by_chapter/${chapterId}?page=${page}&per_page=${AUDIO_PAGE_SIZE}`
+  );
+
+  const verseKey = `${chapterId}:${verseNumber}`;
+  const audioEntry = response.audio_files.find(file => file.verse_key === verseKey);
+
+  if (!audioEntry) {
+    throw new Error(`Audio for verse ${verseKey} not found in recitation ${resolvedRecitationId}.`);
+  }
+
+  return audioEntry;
+}
+
+/**
  * Export the base client for extending with more endpoints
  */
 export const quranClient = {
@@ -155,5 +202,6 @@ export const quranClient = {
   getChapter,
   getVerse,
   getVersesByRange,
+  getVerseAudio,
 };
 

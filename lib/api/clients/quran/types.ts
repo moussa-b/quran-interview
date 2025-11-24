@@ -96,3 +96,30 @@ export interface VersesResponse {
   verses: Verse[];
 }
 
+/**
+ * Audio file entry for verse recitations
+ */
+export interface VerseAudioFile {
+  verse_key: string;
+  url: string;
+}
+
+/**
+ * Pagination metadata returned by Quran API
+ */
+export interface PaginationMeta {
+  per_page: number;
+  current_page: number;
+  next_page: number | null;
+  total_pages: number;
+  total_records: number;
+}
+
+/**
+ * Chapter audio API response
+ */
+export interface ChapterAudioResponse {
+  audio_files: VerseAudioFile[];
+  pagination: PaginationMeta;
+}
+

@@ -1,4 +1,5 @@
-import { getChapters, getChapter, getVerse, getVersesByRange } from '@/lib/api/clients/quran/client';
+import { getChapters, getChapter, getVerse, getVersesByRange, getVerseAudio } from '@/lib/api/clients/quran/client';
+import { getDefaultRecitationId } from '@/lib/api/clients/quran/recitations';
 
 describe('Quran API Client', () => {
   describe('getChapters', () => {
@@ -92,6 +93,25 @@ describe('Quran API Client', () => {
       expect(result).not.toBeNull();
       expect(result.verses).not.toBeNull();
       expect(Array.isArray(result.verses)).toBe(true);
+    });
+  });
+
+  describe('getVerseAudio', () => {
+    it('should return audio metadata for the first verse of Al-Fatihah', async () => {
+      const response = await getVerseAudio(1, 1);
+      expect(response).toHaveProperty('verse_key', '1:1');
+      expect(typeof response.url).toBe('string');
+      expect(response.url.length).toBeGreaterThan(0);
+    });
+
+    it('should allow overriding recitation id explicitly', async () => {
+      const recitationId = await getDefaultRecitationId();
+      const response = await getVerseAudio(1, 2, recitationId);
+      expect(response.verse_key).toBe('1:2');
+    });
+
+    it('should throw when requesting an invalid verse number', async () => {
+      await expect(getVerseAudio(1, 999)).rejects.toThrow('Audio for verse 1:999 not found');
     });
   });
 });
