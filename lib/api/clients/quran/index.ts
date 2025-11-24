@@ -15,7 +15,14 @@
  */
 
 // Export main API client functions
-export { getChapters, getChapter, getVerse, getVersesByRange, quranClient } from './client';
+export {
+  getChapters,
+  getChapter,
+  getVerse,
+  getVersesByRange,
+  getVerseAudio,
+  quranClient,
+} from './client';
 
 // Export auth utilities (mainly for testing/debugging)
 export { getAccessToken, clearTokenCache } from './auth';
@@ -39,5 +46,6 @@ export type {
   Translation,
   OAuth2TokenResponse,
   CachedToken,
+  VerseAudioFile,
 } from './types';
 

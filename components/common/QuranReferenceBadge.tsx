@@ -7,6 +7,8 @@ import { VerseDisplay } from './VerseDisplay'
 import { useTranslations, useLocale } from '@/components/i18n/I18nProvider'
 import type { ItemQuranRef } from '@/lib/api/services/types'
 import type { Chapter, Verse } from '@/lib/api/clients/quran'
+import { CirclePause, CirclePlay, Loader2 } from 'lucide-react'
+import { Slider } from '@/components/ui/slider'
 
 interface QuranReferenceBadgeProps {
   reference: ItemQuranRef
@@ -31,6 +33,15 @@ function createVerseKey(chapter: number, startVerse: number, endVerse: number | 
   return `${chapter}:${startVerse}`
 }
 
+function formatTimeLabel(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return '0:00'
+  }
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
 export function QuranReferenceBadge({ reference, variant }: QuranReferenceBadgeProps) {
   const tVerse = useTranslations('verse')
   const tChapter = useTranslations('chapter')
@@ -43,6 +54,13 @@ export function QuranReferenceBadge({ reference, variant }: QuranReferenceBadgeP
   const [verseLoading, setVerseLoading] = React.useState(false)
   const [chapterError, setChapterError] = React.useState<string | null>(null)
   const [verseError, setVerseError] = React.useState<string | null>(null)
+  const [audioUrl, setAudioUrl] = React.useState<string | null>(null)
+  const [audioLoading, setAudioLoading] = React.useState(false)
+  const [audioError, setAudioError] = React.useState<string | null>(null)
+  const audioRef = React.useRef<HTMLAudioElement | null>(null)
+  const [isPlaying, setIsPlaying] = React.useState(false)
+  const [currentTime, setCurrentTime] = React.useState(0)
+  const [duration, setDuration] = React.useState(0)
 
   const colorClasses = {
     blue: 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200',
@@ -80,6 +98,7 @@ export function QuranReferenceBadge({ reference, variant }: QuranReferenceBadgeP
     setViewMode('verse')
     setVerseLoading(true)
     setVerseError(null)
+    fetchAudioMetadata()
 
     const verseKey = createVerseKey(reference.chapter, reference.start_verse, reference.end_verse)
 
@@ -107,12 +126,131 @@ export function QuranReferenceBadge({ reference, variant }: QuranReferenceBadgeP
     setViewMode('chapter')
   }
 
+  const fetchAudioMetadata = () => {
+    setAudioLoading(true)
+    setAudioError(null)
+    setAudioUrl(null)
+    const params = new URLSearchParams({
+      chapter: reference.chapter.toString(),
+      verse: reference.start_verse.toString(),
+    })
+
+    fetch(`/api/quran/audio?${params.toString()}`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`)
+        }
+        return res.json()
+      })
+      .then((response) => {
+        if (response?.audio?.url) {
+          setAudioUrl(response.audio.url)
+        } else {
+          setAudioError(tVerse('audioUnavailable', 'Audio unavailable for this verse'))
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch verse audio:', err)
+        setAudioError(tVerse('audioError', 'Failed to load verse audio'))
+      })
+      .finally(() => {
+        setAudioLoading(false)
+        setCurrentTime(0)
+        setDuration(0)
+      })
+  }
+
+  const handleToggleAudio = () => {
+    if (audioLoading || !audioRef.current || !audioUrl) {
+      return
+    }
+
+    const audioEl = audioRef.current
+    if (isPlaying) {
+      audioEl.pause()
+    } else {
+      audioEl
+        .play()
+        .catch((error) => {
+          console.error('Failed to play audio:', error)
+          setAudioError(tVerse('audioError', 'Failed to play audio'))
+        })
+    }
+  }
+
+  const handleSliderChange = (value: number[]) => {
+    if (!audioRef.current || !duration) {
+      return
+    }
+    const [nextTime] = value
+    audioRef.current.currentTime = nextTime
+    setCurrentTime(nextTime)
+  }
+
   // Reset view mode when popover closes
   React.useEffect(() => {
     if (!open) {
       setViewMode('chapter')
+      if (audioRef.current) {
+        audioRef.current.pause()
+      }
+      setIsPlaying(false)
+      setCurrentTime(0)
     }
   }, [open])
+
+  React.useEffect(() => {
+    const audioEl = new Audio()
+    audioRef.current = audioEl
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audioEl.currentTime)
+    }
+    const handleLoadedMetadata = () => {
+      setDuration(audioEl.duration || 0)
+    }
+    const handlePlay = () => setIsPlaying(true)
+    const handlePause = () => setIsPlaying(false)
+    const handleEnded = () => {
+      setIsPlaying(false)
+      setCurrentTime(0)
+    }
+
+    audioEl.addEventListener('timeupdate', handleTimeUpdate)
+    audioEl.addEventListener('loadedmetadata', handleLoadedMetadata)
+    audioEl.addEventListener('play', handlePlay)
+    audioEl.addEventListener('pause', handlePause)
+    audioEl.addEventListener('ended', handleEnded)
+
+    return () => {
+      audioEl.pause()
+      audioEl.src = ''
+      audioEl.removeEventListener('timeupdate', handleTimeUpdate)
+      audioEl.removeEventListener('loadedmetadata', handleLoadedMetadata)
+      audioEl.removeEventListener('play', handlePlay)
+      audioEl.removeEventListener('pause', handlePause)
+      audioEl.removeEventListener('ended', handleEnded)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    const audioEl = audioRef.current
+    if (!audioEl) {
+      return
+    }
+
+    if (!audioUrl) {
+      audioEl.pause()
+      audioEl.removeAttribute('src')
+      setIsPlaying(false)
+      setCurrentTime(0)
+      setDuration(0)
+      return
+    }
+
+    audioEl.src = audioUrl
+    audioEl.load()
+  }, [audioUrl])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -223,6 +361,44 @@ export function QuranReferenceBadge({ reference, variant }: QuranReferenceBadgeP
                 verseNumber: tVerse('verseNumber', 'Verse'),
               }}
             />
+
+            <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">{tVerse('audio', 'Audio')}</span>
+                {audioError && <span className="text-xs text-destructive">{audioError}</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleToggleAudio}
+                  disabled={audioLoading || !audioUrl}
+                  aria-label={isPlaying ? tVerse('pause', 'Pause audio') : tVerse('play', 'Play audio')}
+                >
+                  {audioLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : isPlaying ? (
+                    <CirclePause className="h-4 w-4" />
+                  ) : (
+                    <CirclePlay className="h-4 w-4" />
+                  )}
+                </Button>
+                <div className="flex w-full flex-col gap-1">
+                  <Slider
+                    max={duration || 1}
+                    step={0.1}
+                    value={[Math.min(currentTime, duration || 1)]}
+                    onValueChange={handleSliderChange}
+                    disabled={!audioUrl || audioLoading || !duration}
+                  />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{formatTimeLabel(currentTime)}</span>
+                    <span>{formatTimeLabel(duration)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </PopoverContent>

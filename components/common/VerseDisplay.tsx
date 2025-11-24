@@ -91,9 +91,11 @@ export function VerseDisplay({
             {showTranslation && verse.translations && verse.translations.length > 0 ? (
               <div className="space-y-2 border-t pt-2 mt-3">
                 {verse.translations.map((translation, index) => (
-                  <div key={translation.id || index} className="text-sm text-muted-foreground italic">
-                    {translation.text}
-                  </div>
+                  <div
+                    key={translation.id || index}
+                    className="text-sm text-muted-foreground italic"
+                    dangerouslySetInnerHTML={{ __html: translation.text }}
+                  />
                 ))}
               </div>
             ) : showTranslation && (!verse.translations || verse.translations.length === 0) ? (
