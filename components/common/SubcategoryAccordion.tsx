@@ -6,7 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { QuranReferenceBadge } from './QuranReferenceBadge';
+import { ItemDetail } from './ItemDetail';
 import type { 
   SubcategoryWithTranslations,
   ItemWithDetails 
@@ -78,25 +78,12 @@ export function SubcategoryAccordion({ subcategories, locale, dictionary }: Subc
                           key={item.id}
                           className="border-l-2 border-green-400 dark:border-green-600 pl-4 py-2 bg-green-50/50 dark:bg-green-950/20 rounded-r"
                         >
-                          <div className="font-medium text-zinc-900 dark:text-white text-sm">
-                            {itemTranslation?.label || item.slug}
-                          </div>
-                          {itemTranslation?.description && (
-                            <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                              {itemTranslation.description}
-                            </p>
-                          )}
-                          {item.quran_refs && item.quran_refs.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {item.quran_refs.map((ref) => (
-                                <QuranReferenceBadge 
-                                  key={ref.id}
-                                  reference={ref}
-                                  variant="green"
-                                />
-                              ))}
-                            </div>
-                          )}
+                          <ItemDetail
+                            title={itemTranslation?.label}
+                            fallbackSlug={item.slug}
+                            description={itemTranslation?.description}
+                            references={item.quran_refs}
+                          />
                         </div>
                       );
                     })}

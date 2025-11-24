@@ -12,6 +12,14 @@
     "heroTitle": "Explorer les Thèmes du Coran",
     "heroDescription": "Découvrez les principaux thèmes et concepts du Coran organisés par catégories"
   },
+  "search": {
+    "title": "Résultats de recherche",
+    "resultsFor": "Résultats pour",
+    "emptyTitle": "Commencez une recherche",
+    "emptyDescription": "Utilisez la barre de recherche ci-dessus pour trouver des sujets et des références coraniques.",
+    "noResultsTitle": "Aucun résultat",
+    "noResultsDescription": "Essayez un autre mot-clé ou vérifiez l'orthographe."
+  },
   "topics": {
     "categories": "Catégories",
     "subcategories": "Sous-catégories",

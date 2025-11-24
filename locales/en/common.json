@@ -12,6 +12,14 @@
     "heroTitle": "Explore Quran Topics",
     "heroDescription": "Discover the main topics and concepts of the Quran organized by themes"
   },
+  "search": {
+    "title": "Search results",
+    "resultsFor": "Results for",
+    "emptyTitle": "Start a search",
+    "emptyDescription": "Use the search bar above to find related topics and Quran references.",
+    "noResultsTitle": "No results found",
+    "noResultsDescription": "Try a different keyword or double-check the spelling."
+  },
   "topics": {
     "categories": "Categories",
     "subcategories": "Subcategories",
