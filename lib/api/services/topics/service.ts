@@ -35,7 +35,7 @@ export async function getTopics(language?: string): Promise<TopicWithTranslation
            LEFT JOIN subcategories s ON i.subcategory_id = s.id
            LEFT JOIN categories c2 ON s.category_id = c2.id
            WHERE (c.topic_id = t.id OR c2.topic_id = t.id)) as chapters_count,
-          (SELECT COUNT(DISTINCT CONCAT(iqr.chapter, '-', iqr.start_verse, '-', COALESCE(iqr.end_verse, iqr.start_verse))) 
+          (SELECT SUM((COALESCE(iqr.end_verse, iqr.start_verse) - iqr.start_verse) + 1)
            FROM item_quran_refs iqr
            INNER JOIN items i ON iqr.item_id = i.id
            LEFT JOIN categories c ON i.category_id = c.id
@@ -69,7 +69,7 @@ export async function getTopics(language?: string): Promise<TopicWithTranslation
            LEFT JOIN subcategories s ON i.subcategory_id = s.id
            LEFT JOIN categories c2 ON s.category_id = c2.id
            WHERE (c.topic_id = t.id OR c2.topic_id = t.id)) as chapters_count,
-          (SELECT COUNT(DISTINCT CONCAT(iqr.chapter, '-', iqr.start_verse, '-', COALESCE(iqr.end_verse, iqr.start_verse))) 
+          (SELECT SUM((COALESCE(iqr.end_verse, iqr.start_verse) - iqr.start_verse) + 1)
            FROM item_quran_refs iqr
            INNER JOIN items i ON iqr.item_id = i.id
            LEFT JOIN categories c ON i.category_id = c.id
@@ -148,7 +148,7 @@ export async function getTopicById(id: number, language?: string): Promise<Topic
            LEFT JOIN subcategories s ON i.subcategory_id = s.id
            LEFT JOIN categories c2 ON s.category_id = c2.id
            WHERE (c.topic_id = t.id OR c2.topic_id = t.id)) as chapters_count,
-          (SELECT COUNT(DISTINCT CONCAT(iqr.chapter, '-', iqr.start_verse, '-', COALESCE(iqr.end_verse, iqr.start_verse))) 
+          (SELECT SUM((COALESCE(iqr.end_verse, iqr.start_verse) - iqr.start_verse) + 1)
            FROM item_quran_refs iqr
            INNER JOIN items i ON iqr.item_id = i.id
            LEFT JOIN categories c ON i.category_id = c.id
@@ -182,7 +182,7 @@ export async function getTopicById(id: number, language?: string): Promise<Topic
            LEFT JOIN subcategories s ON i.subcategory_id = s.id
            LEFT JOIN categories c2 ON s.category_id = c2.id
            WHERE (c.topic_id = t.id OR c2.topic_id = t.id)) as chapters_count,
-          (SELECT COUNT(DISTINCT CONCAT(iqr.chapter, '-', iqr.start_verse, '-', COALESCE(iqr.end_verse, iqr.start_verse))) 
+          (SELECT SUM((COALESCE(iqr.end_verse, iqr.start_verse) - iqr.start_verse) + 1)
            FROM item_quran_refs iqr
            INNER JOIN items i ON iqr.item_id = i.id
            LEFT JOIN categories c ON i.category_id = c.id
@@ -263,7 +263,7 @@ export async function getTopicBySlug(slug: string, language?: string): Promise<T
            LEFT JOIN subcategories s ON i.subcategory_id = s.id
            LEFT JOIN categories c2 ON s.category_id = c2.id
            WHERE (c.topic_id = t.id OR c2.topic_id = t.id)) as chapters_count,
-          (SELECT COUNT(DISTINCT CONCAT(iqr.chapter, '-', iqr.start_verse, '-', COALESCE(iqr.end_verse, iqr.start_verse))) 
+          (SELECT SUM((COALESCE(iqr.end_verse, iqr.start_verse) - iqr.start_verse) + 1)
            FROM item_quran_refs iqr
            INNER JOIN items i ON iqr.item_id = i.id
            LEFT JOIN categories c ON i.category_id = c.id
@@ -297,7 +297,7 @@ export async function getTopicBySlug(slug: string, language?: string): Promise<T
            LEFT JOIN subcategories s ON i.subcategory_id = s.id
            LEFT JOIN categories c2 ON s.category_id = c2.id
            WHERE (c.topic_id = t.id OR c2.topic_id = t.id)) as chapters_count,
-          (SELECT COUNT(DISTINCT CONCAT(iqr.chapter, '-', iqr.start_verse, '-', COALESCE(iqr.end_verse, iqr.start_verse))) 
+          (SELECT SUM((COALESCE(iqr.end_verse, iqr.start_verse) - iqr.start_verse) + 1)
            FROM item_quran_refs iqr
            INNER JOIN items i ON iqr.item_id = i.id
            LEFT JOIN categories c ON i.category_id = c.id
