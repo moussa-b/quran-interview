@@ -9,6 +9,7 @@ type ItemDetailProps = {
   description?: string | null;
   references?: ItemQuranRef[];
   badgeVariant?: 'blue' | 'green';
+  titleClassName?: string;
 };
 
 export function ItemDetail({
@@ -17,13 +18,16 @@ export function ItemDetail({
   description,
   references,
   badgeVariant = 'green',
+  titleClassName,
 }: ItemDetailProps) {
   const displayTitle = title || fallbackSlug || '';
   const hasReferences = Boolean(references && references.length > 0);
 
   return (
     <div>
-      <div className="font-medium text-zinc-900 dark:text-white text-sm">
+      <div
+        className={`font-medium text-zinc-900 dark:text-white text-sm ${titleClassName ?? ''}`}
+      >
         {displayTitle}
       </div>
       {description && (

@@ -539,16 +539,20 @@ const items = await searchItems('unicité', 'fr');
 
 ### Items Search Helper
 
-- **Function:** `searchItems(query: string, language?: string): Promise<ItemWithDetails[]>`
+- **Function:** `searchItems(query: string, language?: string): Promise<ItemSearchResultWithDetails[]>`
 - **Purpose:** Shared helper for the `GET /api/items/search` route and server components, ensuring search logic stays server-side.
-- **Current behavior:** Performs a `LIKE` search on `item_translations.label`, optionally filtered by `language_code`, and returns each matching item with its translations and Quran references.
+- **Returned shape:** Extends `ItemWithDetails` with `topic`, `category`, and `subcategory` metadata (IDs, slugs, and language-aware translations) for the matched item.
+- **Current behavior:** Performs a `LIKE` search on `item_translations.label`, optionally filtered by `language_code`, and hydrates translations/Quran refs/context entities in a single round-trip.
 - **Usage Example:**
   ```typescript
   import { searchItems } from '@/lib/api/services/items';
 
   export async function SearchResults({ q, locale }: { q: string; locale: string }) {
     const items = await searchItems(q, locale);
-    return items.map((item) => item.slug);
+    return items.map((item) => ({
+      title: item.translations.find((t) => t.language_code === locale)?.label ?? item.slug,
+      topic: item.topic?.translations[0]?.label ?? item.topic?.slug,
+    }));
   }
   ```
 

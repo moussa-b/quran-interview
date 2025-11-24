@@ -67,12 +67,24 @@ describe('Items Service', () => {
       const result = await searchItems('His Will');
       expect(result).not.toBeNull();
       expect(Array.isArray(result)).toBe(true);
+      if (result.length > 0) {
+        const first = result[0];
+        expect(first).toHaveProperty('topic');
+        expect(first).toHaveProperty('category');
+        expect(first).toHaveProperty('subcategory');
+      }
     });
 
     it('should respect the language filter', async () => {
       const result = await searchItems('Sa volonté', 'fr');
       expect(result).not.toBeNull();
       expect(Array.isArray(result)).toBe(true);
+      if (result.length > 0) {
+        const translation = result[0].translations[0];
+        if (translation) {
+          expect(translation.language_code).toBe('fr');
+        }
+      }
     });
   });
 });

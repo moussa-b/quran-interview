@@ -32,6 +32,15 @@
     "item": "item",
     "noItemsAvailable": "No items available"
   },
+  "topic": {
+    "label": "Topic"
+  },
+  "category": {
+    "label": "Category"
+  },
+  "subcategory": {
+    "label": "Subcategory"
+  },
   "language": {
     "en": "English",
     "fr": "Français"

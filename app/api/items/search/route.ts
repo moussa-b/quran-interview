@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchItems } from '@/lib/api/services/items';
-import type { ItemsResponse } from '@/lib/api/services/types';
+import type { ItemSearchResponse } from '@/lib/api/services/types';
 
 /**
  * GET /api/items/search
@@ -19,12 +19,12 @@ export async function GET(request: NextRequest) {
     const language = searchParams.get('language') || undefined;
 
     if (!query) {
-      const emptyResponse: ItemsResponse = { items: [] };
+      const emptyResponse: ItemSearchResponse = { items: [] };
       return NextResponse.json(emptyResponse);
     }
 
     const items = await searchItems(query, language);
-    const response: ItemsResponse = { items };
+    const response: ItemSearchResponse = { items };
 
     return NextResponse.json(response);
   } catch (error) {

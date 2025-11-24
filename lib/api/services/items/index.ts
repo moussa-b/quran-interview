@@ -25,7 +25,9 @@ export type {
   ItemTranslation,
   ItemQuranRef,
   ItemWithDetails,
+  ItemSearchResultWithDetails,
   ItemsResponse,
   ItemResponse,
+  ItemSearchResponse,
 } from '../types';
 

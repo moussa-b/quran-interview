@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getDictionary, isLocale } from '@/lib/i18n/config';
 import { searchItems } from '@/lib/api/services/items';
-import type { ItemWithDetails } from '@/lib/api/services/types';
+import type { ItemSearchResultWithDetails } from '@/lib/api/services/types';
 import { Item, ItemContent, ItemGroup } from '@/components/ui/item';
 import { ItemDetail } from '@/components/common/ItemDetail';
 import { SearchBackButton } from '@/components/common/SearchBackButton';
@@ -10,6 +10,19 @@ type SearchResultPageProps = {
   params: Promise<{ locale: string }>;
   searchParams?: Promise<{ q?: string | string[] }>;
 };
+
+function pickTranslationLabel<T extends { language_code: string; label: string | null }>(
+  translations: T[] | undefined,
+  locale: string
+): string | null {
+  if (!translations || translations.length === 0) {
+    return null;
+  }
+
+  const match =
+    translations.find((translation) => translation.language_code === locale) ?? translations[0];
+  return match?.label ?? null;
+}
 
 function resolveQueryParam(param?: string | string[]): string {
   if (Array.isArray(param)) {
@@ -30,7 +43,7 @@ export default async function SearchResultPage({ params, searchParams }: SearchR
   const rawQuery = resolveQueryParam(resolvedSearchParams.q);
   const normalizedQuery = rawQuery.trim();
 
-  let results: ItemWithDetails[] = [];
+  let results: ItemSearchResultWithDetails[] = [];
   if (normalizedQuery) {
     results = await searchItems(normalizedQuery, localeParam);
   }
@@ -92,6 +105,16 @@ export default async function SearchResultPage({ params, searchParams }: SearchR
                   item.translations.find((t) => t.language_code === localeParam) ||
                   item.translations[0];
 
+                const topicLabel = pickTranslationLabel(item.topic?.translations, localeParam);
+                const categoryLabel = pickTranslationLabel(
+                  item.category?.translations,
+                  localeParam
+                );
+                const subcategoryLabel = pickTranslationLabel(
+                  item.subcategory?.translations,
+                  localeParam
+                );
+
                 return (
                   <Item key={item.id} variant="outline">
                     <ItemContent>
@@ -100,7 +123,36 @@ export default async function SearchResultPage({ params, searchParams }: SearchR
                         fallbackSlug={item.slug}
                         description={translation?.description}
                         references={item.quran_refs}
+                        titleClassName="text-base md:text-lg"
                       />
+                      {(topicLabel || categoryLabel || subcategoryLabel) && (
+                        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+                          {topicLabel && (
+                            <span>
+                              <span className="font-semibold text-zinc-900 dark:text-white">
+                                {dictionary.topic.label}:
+                              </span>{' '}
+                              {topicLabel}
+                            </span>
+                          )}
+                          {categoryLabel && (
+                            <span>
+                              <span className="font-semibold text-zinc-900 dark:text-white">
+                                {dictionary.category.label}:
+                              </span>{' '}
+                              {categoryLabel}
+                            </span>
+                          )}
+                          {subcategoryLabel && (
+                            <span>
+                              <span className="font-semibold text-zinc-900 dark:text-white">
+                                {dictionary.subcategory.label}:
+                              </span>{' '}
+                              {subcategoryLabel}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </ItemContent>
                   </Item>
                 );

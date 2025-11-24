@@ -1,6 +1,14 @@
 import { getConnection } from '@/lib/db/connection';
 import type { RowDataPacket } from 'mysql2/promise';
-import { ItemQuranRef, ItemTranslation, ItemWithDetails, } from '../types';
+import {
+  CategoryTranslation,
+  ItemQuranRef,
+  ItemSearchResultWithDetails,
+  ItemTranslation,
+  ItemWithDetails,
+  SubcategoryTranslation,
+  TopicTranslation,
+} from '../types';
 
 /**
  * Fetch all items with their translations and Quran references
@@ -215,7 +223,7 @@ export async function getItem(id: number, language?: string): Promise<ItemWithDe
 export async function searchItems(
   query: string,
   language?: string
-): Promise<ItemWithDetails[]> {
+): Promise<ItemSearchResultWithDetails[]> {
   const trimmed = query.trim();
 
   if (!trimmed) {
@@ -227,6 +235,18 @@ export async function searchItems(
   try {
     const likeQuery = `%${trimmed}%`;
     const params: unknown[] = [];
+
+    if (language) {
+      params.push(language);
+    }
+
+    if (language) {
+      params.push(language);
+    }
+
+    if (language) {
+      params.push(language);
+    }
 
     if (language) {
       params.push(language);
@@ -271,37 +291,100 @@ export async function searchItems(
           FROM item_quran_refs iqr
           WHERE iqr.item_id = i.id
           ORDER BY iqr.chapter, iqr.start_verse
-        ) as quran_refs_json
+        ) as quran_refs_json,
+        COALESCE(c.id, sc.id) as resolved_category_id,
+        COALESCE(c.slug, sc.slug) as resolved_category_slug,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', ct.id,
+              'category_id', ct.category_id,
+              'language_code', ct.language_code,
+              'label', ct.label,
+              'description', ct.description
+            )
+          )
+          FROM category_translations ct
+          WHERE ct.category_id = COALESCE(c.id, sc.id)
+          ${language ? 'AND ct.language_code = ?' : ''}
+        ) as category_translations_json,
+        s.id as subcategory_id,
+        s.slug as subcategory_slug,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', sct.id,
+              'subcategory_id', sct.subcategory_id,
+              'language_code', sct.language_code,
+              'label', sct.label,
+              'description', sct.description
+            )
+          )
+          FROM subcategory_translations sct
+          WHERE sct.subcategory_id = s.id
+          ${language ? 'AND sct.language_code = ?' : ''}
+        ) as subcategory_translations_json,
+        t.id as topic_id,
+        t.slug as topic_slug,
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', tt.id,
+              'topic_id', tt.topic_id,
+              'language_code', tt.language_code,
+              'label', tt.label,
+              'description', tt.description
+            )
+          )
+          FROM topic_translations tt
+          WHERE tt.topic_id = t.id
+          ${language ? 'AND tt.language_code = ?' : ''}
+        ) as topic_translations_json
       FROM items i
-      INNER JOIN item_translations search_it ON search_it.item_id = i.id
-      WHERE search_it.label LIKE ?
-      ${language ? 'AND search_it.language_code = ?' : ''}
-      GROUP BY i.id
+      LEFT JOIN categories c ON i.category_id = c.id
+      LEFT JOIN subcategories s ON i.subcategory_id = s.id
+      LEFT JOIN categories sc ON s.category_id = sc.id
+      LEFT JOIN topics t ON t.id = COALESCE(c.topic_id, sc.topic_id)
+      WHERE i.id IN (
+        SELECT search_it.item_id
+        FROM item_translations search_it
+        WHERE search_it.label LIKE ?
+        ${language ? 'AND search_it.language_code = ?' : ''}
+      )
       ORDER BY i.sort_order ASC
     `;
 
     const [rows] = await connection.execute<RowDataPacket[]>(searchQuery, params);
 
+    const parseJsonArray = <T extends { id: number | null }>(
+      json: RowDataPacket[keyof RowDataPacket]
+    ): T[] => {
+      if (!json || json === 'null') {
+        return [];
+      }
+
+      const parsed = typeof json === 'string' ? JSON.parse(json as string) : json;
+      return Array.isArray(parsed)
+        ? parsed.filter((entry: T | null) => entry && entry.id !== null)
+        : [];
+    };
+
     return rows.map(row => {
-      const translationsJson = row.translations_json;
-      const quranRefsJson = row.quran_refs_json;
+      const translations = parseJsonArray<ItemTranslation>(row.translations_json);
+      const quran_refs = parseJsonArray<ItemQuranRef>(row.quran_refs_json);
+      const categoryTranslations =
+        parseJsonArray<CategoryTranslation>(row.category_translations_json);
+      const subcategoryTranslations =
+        parseJsonArray<SubcategoryTranslation>(row.subcategory_translations_json);
+      const topicTranslations =
+        parseJsonArray<TopicTranslation>(row.topic_translations_json);
 
-      let translations: ItemTranslation[] = [];
-      let quran_refs: ItemQuranRef[] = [];
-
-      if (translationsJson && translationsJson !== 'null') {
-        const parsed = typeof translationsJson === 'string'
-          ? JSON.parse(translationsJson)
-          : translationsJson;
-        translations = parsed.filter((t: ItemTranslation | null) => t && t.id !== null);
-      }
-
-      if (quranRefsJson && quranRefsJson !== 'null') {
-        const parsed = typeof quranRefsJson === 'string'
-          ? JSON.parse(quranRefsJson)
-          : quranRefsJson;
-        quran_refs = parsed.filter((r: ItemQuranRef | null) => r && r.id !== null);
-      }
+      const resolvedCategoryId = row.resolved_category_id as number | null;
+      const resolvedCategorySlug = row.resolved_category_slug as string | null;
+      const subcategoryId = row.subcategory_id as number | null;
+      const subcategorySlug = row.subcategory_slug as string | null;
+      const topicId = row.topic_id as number | null;
+      const topicSlug = row.topic_slug as string | null;
 
       return {
         id: row.id,
@@ -311,6 +394,30 @@ export async function searchItems(
         sort_order: row.sort_order,
         translations,
         quran_refs,
+        category:
+          resolvedCategoryId && resolvedCategorySlug
+            ? {
+                id: resolvedCategoryId,
+                slug: resolvedCategorySlug,
+                translations: categoryTranslations,
+              }
+            : undefined,
+        subcategory:
+          subcategoryId && subcategorySlug
+            ? {
+                id: subcategoryId,
+                slug: subcategorySlug,
+                translations: subcategoryTranslations,
+              }
+            : undefined,
+        topic:
+          topicId && topicSlug
+            ? {
+                id: topicId,
+                slug: topicSlug,
+                translations: topicTranslations,
+              }
+            : undefined,
       };
     });
   } finally {

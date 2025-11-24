@@ -137,6 +137,24 @@ export interface ItemWithDetails extends Item {
   quran_refs: ItemQuranRef[];
 }
 
+export interface ItemSearchResultWithDetails extends ItemWithDetails {
+  topic?: {
+    id: number;
+    slug: string;
+    translations: TopicTranslation[];
+  };
+  category?: {
+    id: number;
+    slug: string;
+    translations: CategoryTranslation[];
+  };
+  subcategory?: {
+    id: number;
+    slug: string;
+    translations: SubcategoryTranslation[];
+  };
+}
+
 /**
  * API Response types
  */
@@ -170,5 +188,9 @@ export interface ItemsResponse {
 
 export interface ItemResponse {
   item: ItemWithDetails;
+}
+
+export interface ItemSearchResponse {
+  items: ItemSearchResultWithDetails[];
 }
 
