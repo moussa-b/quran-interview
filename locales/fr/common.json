@@ -5,7 +5,8 @@
   },
   "header": {
     "searchPlaceholder": "Rechercher des thèmes...",
-    "languageLabel": "Langue"
+    "languageLabel": "Langue",
+    "searchButton": "Rechercher"
   },
   "home": {
     "heroTitle": "Explorer les Thèmes du Coran",

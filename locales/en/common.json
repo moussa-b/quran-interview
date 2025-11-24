@@ -5,7 +5,8 @@
   },
   "header": {
     "searchPlaceholder": "Search topics...",
-    "languageLabel": "Language"
+    "languageLabel": "Language",
+    "searchButton": "Search"
   },
   "home": {
     "heroTitle": "Explore Quran Topics",

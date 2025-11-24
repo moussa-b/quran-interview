@@ -8,7 +8,7 @@ import LanguageDropdown from '@/components/layout/LanguageDropdown';
 import ThemeToggle from '@/components/layout/ThemeToggle';
 import {
   InputGroup,
-  InputGroupAddon,
+  InputGroupAddon, InputGroupButton,
   InputGroupInput,
 } from '@/components/ui/input-group';
 
@@ -33,13 +33,19 @@ export default function Header() {
       </Link>
       <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
         {/* Search bar - hidden on mobile, visible on tablet and up */}
-        <InputGroup className="hidden w-48 md:flex lg:w-64">
+        <InputGroup className="hidden w-56 md:flex lg:w-72">
           <InputGroupInput
             placeholder={t('searchPlaceholder')}
             aria-label={t('searchPlaceholder')}
+            className="py-2"
           />
           <InputGroupAddon>
             <Search aria-hidden="true" />
+          </InputGroupAddon>
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton variant="secondary" className="cursor-pointer">
+              {t('searchButton')}
+            </InputGroupButton>
           </InputGroupAddon>
         </InputGroup>
         <LanguageDropdown />
