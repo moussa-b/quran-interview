@@ -15,6 +15,7 @@
   "search": {
     "title": "Résultats de recherche",
     "resultsFor": "Résultats pour",
+    "backLabel": "Retour",
     "emptyTitle": "Commencez une recherche",
     "emptyDescription": "Utilisez la barre de recherche ci-dessus pour trouver des sujets et des références coraniques.",
     "noResultsTitle": "Aucun résultat",

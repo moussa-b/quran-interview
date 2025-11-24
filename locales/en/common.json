@@ -15,6 +15,7 @@
   "search": {
     "title": "Search results",
     "resultsFor": "Results for",
+    "backLabel": "Back to results",
     "emptyTitle": "Start a search",
     "emptyDescription": "Use the search bar above to find related topics and Quran references.",
     "noResultsTitle": "No results found",

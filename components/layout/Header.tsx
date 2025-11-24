@@ -34,24 +34,29 @@ export default function Header() {
   };
 
   return (
-    <header className="flex items-center justify-between border-b border-gray-200 px-3 py-3 dark:border-gray-700 sm:px-4 sm:py-4 md:px-6">
-      <Link href={`/${locale}`} className="flex items-center">
-        <Image
-          src="/logo.svg"
-          alt="App Logo"
-          width={0}
-          height={0}
-          style={{
-            height: "19px",
-            width: "auto",
-          }}
-          priority
-        />
-      </Link>
-      <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
-        {/* Search bar - hidden on mobile, visible on tablet and up */}
+    <header className="border-b border-gray-200 px-3 py-3 dark:border-gray-700 sm:px-4 sm:py-4 md:px-6">
+      <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between gap-3">
+          <Link href={`/${locale}`} className="flex items-center">
+            <Image
+              src="/logo.svg"
+              alt="App Logo"
+              width={0}
+              height={0}
+              style={{
+                height: "19px",
+                width: "auto",
+              }}
+              priority
+            />
+          </Link>
+          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
+            <LanguageDropdown />
+            <ThemeToggle />
+          </div>
+        </div>
         <form
-          className="hidden w-56 md:flex lg:w-72"
+          className="w-full sm:w-auto sm:min-w-64 sm:max-w-md lg:max-w-lg"
           onSubmit={handleSearch}
           role="search"
           aria-label={t('searchPlaceholder')}
@@ -78,8 +83,6 @@ export default function Header() {
             </InputGroupAddon>
           </InputGroup>
         </form>
-        <LanguageDropdown />
-        <ThemeToggle />
       </div>
     </header>
   );

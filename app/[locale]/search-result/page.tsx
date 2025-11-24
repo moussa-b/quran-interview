@@ -4,6 +4,7 @@ import { searchTopics } from '@/lib/api/services/topics';
 import type { ItemWithDetails } from '@/lib/api/services/types';
 import { Item, ItemContent, ItemGroup } from '@/components/ui/item';
 import { ItemDetail } from '@/components/common/ItemDetail';
+import { SearchBackButton } from '@/components/common/SearchBackButton';
 
 type SearchResultPageProps = {
   params: Promise<{ locale: string }>;
@@ -47,12 +48,17 @@ export default async function SearchResultPage({ params, searchParams }: SearchR
             {dictionary.search.title}
           </h1>
           {normalizedQuery && (
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-              {dictionary.search.resultsFor}{' '}
-              <span className="font-semibold text-zinc-900 dark:text-white">
-                "{normalizedQuery}"
-              </span>
-            </p>
+            <>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                {dictionary.search.resultsFor}{' '}
+                <span className="font-semibold text-zinc-900 dark:text-white">
+                  "{normalizedQuery}"
+                </span>
+              </p>
+              <div className="mt-3">
+                <SearchBackButton label={dictionary.search.backLabel} />
+              </div>
+            </>
           )}
         </div>
 
