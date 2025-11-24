@@ -17,6 +17,7 @@ quran/
 ├── auth.ts          → OAuth2 token manager
 ├── client.ts        → Main API methods (chapters, verses)
 ├── translations.ts  → Translation resource manager
+├── recitations.ts   → Recitation resource manager
 ├── types.ts         → TypeScript type definitions
 └── index.ts         → Public API exports
 ```
@@ -28,6 +29,7 @@ quran/
 - **`auth.ts`** - OAuth2 token manager with automatic caching and refresh
 - **`client.ts`** - Main API client with methods for fetching chapters and verses
 - **`translations.ts`** - Translation resource manager with caching
+- **`recitations.ts`** - Recitation resource manager for listing available reciters
 - **`types.ts`** - TypeScript type definitions for API requests and responses
 - **`index.ts`** - Barrel exports for convenient imports
 
@@ -242,6 +244,11 @@ The client implements two levels of caching:
 - Cache persists for the lifetime of the server process
 - Use `clearTranslationCache()` to manually clear (useful for testing)
 
+### Recitation Cache (`recitations.ts`)
+- Recitation lists are cached by language to avoid duplicate network calls
+- Cache persists for the lifetime of the server process
+- Use `clearRecitationCache()` to manually clear (useful for testing)
+
 ## Security
 
 - All API calls are server-side only
@@ -254,12 +261,17 @@ The client implements two levels of caching:
 ## Testing
 
 ```typescript
-import { clearTokenCache, clearTranslationCache } from '@/lib/api/clients/quran';
+import {
+  clearTokenCache,
+  clearTranslationCache,
+  clearRecitationCache,
+} from '@/lib/api/clients/quran';
 
 // Clear caches between tests
 beforeEach(() => {
   clearTokenCache();
   clearTranslationCache();
+  clearRecitationCache();
 });
 ```
 
@@ -268,4 +280,5 @@ beforeEach(() => {
 - [Quran Foundation API Documentation](https://api-docs.quran.foundation/)
 - [Content APIs](https://api-docs.quran.foundation/docs/content_apis_versioned/)
 - [Translation Resources](https://api-docs.quran.foundation/docs/content_apis_versioned/translations/)
+- [Recitation Resources](https://api-docs.quran.foundation/docs/content_apis_versioned/recitations/)
 

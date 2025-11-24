@@ -24,6 +24,10 @@ export { getAccessToken, clearTokenCache } from './auth';
 export { getTranslationId, clearTranslationCache } from './translations';
 export type { TranslationResource } from './translations';
 
+// Export recitation utilities
+export { getRecitations, clearRecitationCache } from './recitations';
+export type { RecitationResource } from './recitations';
+
 // Export types for consumers
 export type {
   Chapter,
