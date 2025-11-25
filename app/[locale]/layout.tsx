@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import Header from '@/components/layout/Header';
+import DemoBanner from '@/components/layout/DemoBanner';
 import { I18nProvider } from '@/components/i18n/I18nProvider';
 import { getDictionary, isLocale, locales, } from '@/lib/i18n/config';
 
@@ -28,6 +29,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   return (
     <I18nProvider locale={locale} messages={dictionary}>
       <div className="flex min-h-screen flex-col">
+        <DemoBanner />
         <Header />
         <main className="flex-1">{children}</main>
       </div>

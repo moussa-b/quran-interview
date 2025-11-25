@@ -64,6 +64,10 @@
     "order": "Order",
     "pages": "Pages",
     "loading": "Loading..."
+  },
+  "banner": {
+    "message": "Demonstration version developed for the Full-Stack Engineer application (Quran Foundation). Displayed data is incomplete and not validated.",
+    "closeLabel": "Close banner"
   }
 }
 

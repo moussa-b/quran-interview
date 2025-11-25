@@ -64,6 +64,10 @@
     "order": "Ordre",
     "pages": "Pages",
     "loading": "Chargement..."
+  },
+  "banner": {
+    "message": "Version démonstrative développée pour la candidature Full-Stack Engineer (Quran Foundation). Les données affichées sont incomplètes et non vérifiées.",
+    "closeLabel": "Fermer la bannière"
   }
 }
 
