@@ -1,5 +1,6 @@
 import { getConnection } from '@/lib/db/connection';
-import type { RowDataPacket } from 'mysql2/promise';
+import { jsonArrayAggObject } from '@/lib/db/query-builder';
+import type { DatabaseRow } from '@/lib/db/types';
 import { CategoryTranslation, CategoryWithTranslations, } from '../types';
 
 /**
@@ -16,6 +17,14 @@ export async function getCategories(
   const connection = await getConnection();
   
   try {
+    const translationsJsonQuery = jsonArrayAggObject([
+      ['id', 'ct.id'],
+      ['category_id', 'ct.category_id'],
+      ['language_code', 'ct.language_code'],
+      ['label', 'ct.label'],
+      ['description', 'ct.description'],
+    ]);
+    
     let query: string;
     let params: unknown[];
     
@@ -23,15 +32,7 @@ export async function getCategories(
       query = `
         SELECT 
           c.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', ct.id,
-              'category_id', ct.category_id,
-              'language_code', ct.language_code,
-              'label', ct.label,
-              'description', ct.description
-            )
-          ) as translations_json
+          ${translationsJsonQuery} as translations_json
         FROM categories c
         LEFT JOIN category_translations ct ON ct.category_id = c.id AND ct.language_code = ?
         WHERE c.topic_id = ?
@@ -43,15 +44,7 @@ export async function getCategories(
       query = `
         SELECT 
           c.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', ct.id,
-              'category_id', ct.category_id,
-              'language_code', ct.language_code,
-              'label', ct.label,
-              'description', ct.description
-            )
-          ) as translations_json
+          ${translationsJsonQuery} as translations_json
         FROM categories c
         LEFT JOIN category_translations ct ON ct.category_id = c.id
         WHERE c.topic_id = ?
@@ -63,15 +56,7 @@ export async function getCategories(
       query = `
         SELECT 
           c.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', ct.id,
-              'category_id', ct.category_id,
-              'language_code', ct.language_code,
-              'label', ct.label,
-              'description', ct.description
-            )
-          ) as translations_json
+          ${translationsJsonQuery} as translations_json
         FROM categories c
         LEFT JOIN category_translations ct ON ct.category_id = c.id AND ct.language_code = ?
         GROUP BY c.id
@@ -82,15 +67,7 @@ export async function getCategories(
       query = `
         SELECT 
           c.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', ct.id,
-              'category_id', ct.category_id,
-              'language_code', ct.language_code,
-              'label', ct.label,
-              'description', ct.description
-            )
-          ) as translations_json
+          ${translationsJsonQuery} as translations_json
         FROM categories c
         LEFT JOIN category_translations ct ON ct.category_id = c.id
         GROUP BY c.id
@@ -99,7 +76,7 @@ export async function getCategories(
       params = [];
     }
     
-    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    const [rows] = await connection.execute<DatabaseRow>(query, params);
     
     // Parse JSON and construct results
     return rows.map(row => {
@@ -115,10 +92,10 @@ export async function getCategories(
       }
       
       return {
-        id: row.id,
-        topic_id: row.topic_id,
-        slug: row.slug,
-        sort_order: row.sort_order,
+        id: Number(row.id),
+        topic_id: Number(row.topic_id),
+        slug: String(row.slug),
+        sort_order: Number(row.sort_order),
         translations,
       };
     });
@@ -138,19 +115,19 @@ export async function getCategory(id: number, language?: string): Promise<Catego
   const connection = await getConnection();
   
   try {
+    const translationsJsonQuery = jsonArrayAggObject([
+      ['id', 'ct.id'],
+      ['category_id', 'ct.category_id'],
+      ['language_code', 'ct.language_code'],
+      ['label', 'ct.label'],
+      ['description', 'ct.description'],
+    ]);
+    
     const query = language
       ? `
         SELECT 
           c.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', ct.id,
-              'category_id', ct.category_id,
-              'language_code', ct.language_code,
-              'label', ct.label,
-              'description', ct.description
-            )
-          ) as translations_json
+          ${translationsJsonQuery} as translations_json
         FROM categories c
         LEFT JOIN category_translations ct ON ct.category_id = c.id AND ct.language_code = ?
         WHERE c.id = ?
@@ -159,15 +136,7 @@ export async function getCategory(id: number, language?: string): Promise<Catego
       : `
         SELECT 
           c.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', ct.id,
-              'category_id', ct.category_id,
-              'language_code', ct.language_code,
-              'label', ct.label,
-              'description', ct.description
-            )
-          ) as translations_json
+          ${translationsJsonQuery} as translations_json
         FROM categories c
         LEFT JOIN category_translations ct ON ct.category_id = c.id
         WHERE c.id = ?
@@ -175,7 +144,7 @@ export async function getCategory(id: number, language?: string): Promise<Catego
       `;
     
     const params = language ? [language, id] : [id];
-    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    const [rows] = await connection.execute<DatabaseRow>(query, params);
     
     if (rows.length === 0) {
       return null;
@@ -194,10 +163,10 @@ export async function getCategory(id: number, language?: string): Promise<Catego
     }
     
     return {
-      id: row.id,
-      topic_id: row.topic_id,
-      slug: row.slug,
-      sort_order: row.sort_order,
+      id: Number(row.id),
+      topic_id: Number(row.topic_id),
+      slug: String(row.slug),
+      sort_order: Number(row.sort_order),
       translations,
     };
   } finally {

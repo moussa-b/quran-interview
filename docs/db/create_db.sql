@@ -13,7 +13,143 @@ SET UNIQUE_CHECKS = 0;
 SET @ORIG_TIME_ZONE = @@TIME_ZONE;
 SET TIME_ZONE = '+00:00';
 
+CREATE TABLE `categories`
+(
+    `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+    `topic_id` bigint UNSIGNED NOT NULL,
+    `slug` varchar(255) NOT NULL,
+    `sort_order` int UNSIGNED DEFAULT '0',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_category_slug` (`topic_id`, `slug`),
+    CONSTRAINT `fk_category_theme` FOREIGN KEY (`topic_id`) REFERENCES `topics` (`id`) ON DELETE CASCADE
+)
+    ENGINE = INNODB AUTO_INCREMENT = 25 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
+
+CREATE TABLE `category_translations`
+(
+    `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+    `category_id` bigint UNSIGNED NOT NULL,
+    `language_code` varchar(10) NOT NULL,
+    `label` varchar(255) NOT NULL,
+    `description` text,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_category_lang` (`category_id`, `language_code`),
+    CONSTRAINT `fk_category_translations_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
+)
+    ENGINE = INNODB AUTO_INCREMENT = 49 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE `item_quran_refs`
+(
+    `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+    `item_id` bigint UNSIGNED NOT NULL,
+    `chapter` int UNSIGNED NOT NULL,
+    `start_verse` int UNSIGNED NOT NULL,
+    `end_verse` int UNSIGNED DEFAULT NULL,
+    `metadata` json DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON
+	UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `fk_item_quran_refs_item` (`item_id`),
+    CONSTRAINT `fk_item_quran_refs_item` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE
+)
+    ENGINE = INNODB AUTO_INCREMENT = 8 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE `item_translations`
+(
+    `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+    `item_id` bigint UNSIGNED NOT NULL,
+    `language_code` varchar(10) NOT NULL,
+    `label` varchar(255) NOT NULL,
+    `description` text,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_item_lang` (`item_id`, `language_code`),
+    CONSTRAINT `fk_item_translations` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE
+)
+    ENGINE = INNODB AUTO_INCREMENT = 169 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE `items`
+(
+    `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+    `category_id` bigint UNSIGNED DEFAULT NULL,
+    `subcategory_id` bigint UNSIGNED DEFAULT NULL,
+    `slug` varchar(255) NOT NULL,
+    `sort_order` int UNSIGNED DEFAULT '0',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_item_slug` (`slug`),
+    KEY `fk_item_category` (`category_id`),
+    KEY `fk_item_subcategory` (`subcategory_id`),
+    CONSTRAINT `fk_item_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_item_subcategory` FOREIGN KEY (`subcategory_id`) REFERENCES `subcategories` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `chk_item_parent_exclusive` CHECK
+        (
+        (
+            ((`category_id` IS NOT null)
+                AND (`subcategory_id` IS null))
+                OR ((`category_id` IS null)
+                AND (`subcategory_id` IS NOT null))
+            )
+
+        )
+
+)
+    ENGINE = INNODB AUTO_INCREMENT = 1000453 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE `subcategories`
+(
+    `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+    `category_id` bigint UNSIGNED NOT NULL,
+    `slug` varchar(255) NOT NULL,
+    `sort_order` int UNSIGNED DEFAULT '0',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_subcategory_slug` (`category_id`, `slug`),
+    CONSTRAINT `fk_subcategory_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
+)
+    ENGINE = INNODB AUTO_INCREMENT = 9 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE `subcategory_translations`
+(
+    `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+    `subcategory_id` bigint UNSIGNED NOT NULL,
+    `language_code` varchar(10) NOT NULL,
+    `label` varchar(255) NOT NULL,
+    `description` text,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_subcategory_lang` (`subcategory_id`, `language_code`),
+    CONSTRAINT `fk_subcategory_translations_subcategory` FOREIGN KEY (`subcategory_id`) REFERENCES `subcategories` (`id`) ON DELETE CASCADE
+)
+    ENGINE = INNODB AUTO_INCREMENT = 17 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE `topic_translations`
+(
+    `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+    `topic_id` bigint UNSIGNED NOT NULL,
+    `language_code` varchar(10) NOT NULL,
+    `label` varchar(255) NOT NULL,
+    `description` text,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_theme_lang` (`topic_id`, `language_code`),
+    CONSTRAINT `fk_theme_translations_theme` FOREIGN KEY (`topic_id`) REFERENCES `topics` (`id`) ON DELETE CASCADE
+)
+    ENGINE = INNODB AUTO_INCREMENT = 31 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE `topics`
+(
+    `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+    `slug` varchar(255) NOT NULL,
+    `sort_order` int UNSIGNED DEFAULT '0',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `slug` (`slug`)
+)
+    ENGINE = INNODB AUTO_INCREMENT = 16 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 
 LOCK TABLES `categories` WRITE;

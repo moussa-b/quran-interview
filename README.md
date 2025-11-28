@@ -27,7 +27,17 @@ QURAN_CONTENT_API_BASE_URL=https://apis-prelive.quran.foundation/content/api/v4
 QURAN_CLIENT_ID=your_client_id_here
 QURAN_CLIENT_SECRET=your_client_secret_here
 
-# Database Configuration (for local development)
+# Database Configuration
+# Database type: 'mysql' or 'sqlite' (default: 'sqlite')
+DB_TYPE=sqlite
+
+# For SQLite (when DB_TYPE=sqlite):
+# DB_PATH specifies the SQLite database file path (defaults to DB_NAME if not set)
+DB_PATH=./quran.db
+# Or use DB_NAME as fallback for SQLite file path
+# DB_NAME=quran.db
+
+# For MySQL (when DB_TYPE=mysql):
 DB_HOST=localhost
 DB_PORT=3308
 DB_USER=nextjs
@@ -180,7 +190,7 @@ The API client handles:
 ## Health Check Endpoint
 
 The application includes a health check endpoint at `/api/health` that monitors:
-- ✅ MySQL database connectivity
+- ✅ Database connectivity (MySQL or SQLite, depending on configuration)
 - ✅ Quran Foundation API availability
 
 ### Endpoint Details
@@ -227,6 +237,16 @@ QURAN_CLIENT_ID=your_client_id_here
 QURAN_CLIENT_SECRET=your_client_secret_here
 
 # Database Configuration
+# Database type: 'mysql' or 'sqlite' (default: 'sqlite')
+DB_TYPE=sqlite
+
+# For SQLite (when DB_TYPE=sqlite):
+# DB_PATH specifies the SQLite database file path (defaults to DB_NAME if not set)
+DB_PATH=./quran.db
+# Or use DB_NAME as fallback for SQLite file path
+# DB_NAME=quran.db
+
+# For MySQL (when DB_TYPE=mysql):
 DB_HOST=localhost
 DB_PORT=3308
 DB_USER=nextjs
@@ -269,7 +289,7 @@ Tests are located alongside the code they test, in `__tests__` directories:
 
 ### Test Requirements
 
-- **Database**: Tests require a running MySQL database with the schema from `docs/db/create_db.sql`
+- **Database**: Tests require a running database (MySQL or SQLite) with the schema from `docs/db/create_db.sql`
 - **API Access**: Tests require valid Quran Foundation API credentials (same as development)
 - **Environment Variables**: All variables from `.env.test` must be set and valid
 
@@ -281,6 +301,34 @@ Current tests verify:
 - API responses are not null
 
 Content validation will be added in future iterations.
+
+## Database Configuration
+
+The application supports both **MySQL** and **SQLite** databases. You can switch between them using the `DB_TYPE` environment variable.
+
+### SQLite (Default)
+
+SQLite is the default database type and requires no additional setup. Simply specify the database file path:
+
+```bash
+DB_TYPE=sqlite
+DB_PATH=./quran.db
+```
+
+If `DB_PATH` is not set, the application will use `DB_NAME` as the file path.
+
+### MySQL
+
+For MySQL, use the following configuration:
+
+```bash
+DB_TYPE=mysql
+DB_HOST=localhost
+DB_PORT=3308
+DB_USER=nextjs
+DB_PASSWORD=nextjs
+DB_NAME=quran
+```
 
 ## Local Database (MySQL)
 

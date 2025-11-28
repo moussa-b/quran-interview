@@ -1,5 +1,6 @@
 import { getConnection } from '@/lib/db/connection';
-import type { RowDataPacket } from 'mysql2/promise';
+import { jsonArrayAggObject } from '@/lib/db/query-builder';
+import type { DatabaseRow } from '@/lib/db/types';
 import { TopicTranslation, TopicWithTranslations, } from '../types';
 
 /**
@@ -12,19 +13,19 @@ export async function getTopics(language?: string): Promise<TopicWithTranslation
   const connection = await getConnection();
   
   try {
+    const translationsJsonQuery = jsonArrayAggObject([
+      ['id', 'tt.id'],
+      ['topic_id', 'tt.topic_id'],
+      ['language_code', 'tt.language_code'],
+      ['label', 'tt.label'],
+      ['description', 'tt.description'],
+    ]);
+    
     const query = language
       ? `
         SELECT 
           t.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', tt.id,
-              'topic_id', tt.topic_id,
-              'language_code', tt.language_code,
-              'label', tt.label,
-              'description', tt.description
-            )
-          ) as translations_json,
+          ${translationsJsonQuery} as translations_json,
           (SELECT COUNT(*) FROM categories c WHERE c.topic_id = t.id) as categories_count,
           (SELECT COUNT(*) FROM subcategories s 
            INNER JOIN categories c ON s.category_id = c.id 
@@ -83,7 +84,7 @@ export async function getTopics(language?: string): Promise<TopicWithTranslation
       `;
     
     const params = language ? [language] : [];
-    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    const [rows] = await connection.execute<DatabaseRow>(query, params);
     
     // Parse JSON and construct results
     return rows.map(row => {
@@ -99,9 +100,9 @@ export async function getTopics(language?: string): Promise<TopicWithTranslation
       }
       
       return {
-        id: row.id,
-        slug: row.slug,
-        sort_order: row.sort_order,
+        id: Number(row.id),
+        slug: String(row.slug),
+        sort_order: Number(row.sort_order),
         translations,
         categories_count: Number(row.categories_count) || 0,
         subcategories_count: Number(row.subcategories_count) || 0,
@@ -125,19 +126,19 @@ export async function getTopicById(id: number, language?: string): Promise<Topic
   const connection = await getConnection();
   
   try {
+    const translationsJsonQuery = jsonArrayAggObject([
+      ['id', 'tt.id'],
+      ['topic_id', 'tt.topic_id'],
+      ['language_code', 'tt.language_code'],
+      ['label', 'tt.label'],
+      ['description', 'tt.description'],
+    ]);
+    
     const query = language
       ? `
         SELECT 
           t.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', tt.id,
-              'topic_id', tt.topic_id,
-              'language_code', tt.language_code,
-              'label', tt.label,
-              'description', tt.description
-            )
-          ) as translations_json,
+          ${translationsJsonQuery} as translations_json,
           (SELECT COUNT(*) FROM categories c WHERE c.topic_id = t.id) as categories_count,
           (SELECT COUNT(*) FROM subcategories s 
            INNER JOIN categories c ON s.category_id = c.id 
@@ -163,15 +164,7 @@ export async function getTopicById(id: number, language?: string): Promise<Topic
       : `
         SELECT 
           t.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', tt.id,
-              'topic_id', tt.topic_id,
-              'language_code', tt.language_code,
-              'label', tt.label,
-              'description', tt.description
-            )
-          ) as translations_json,
+          ${translationsJsonQuery} as translations_json,
           (SELECT COUNT(*) FROM categories c WHERE c.topic_id = t.id) as categories_count,
           (SELECT COUNT(*) FROM subcategories s 
            INNER JOIN categories c ON s.category_id = c.id 
@@ -196,7 +189,7 @@ export async function getTopicById(id: number, language?: string): Promise<Topic
       `;
     
     const params = language ? [language, id] : [id];
-    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    const [rows] = await connection.execute<DatabaseRow>(query, params);
     
     if (rows.length === 0) {
       return null;
@@ -215,9 +208,9 @@ export async function getTopicById(id: number, language?: string): Promise<Topic
     }
     
     return {
-      id: row.id,
-      slug: row.slug,
-      sort_order: row.sort_order,
+      id: Number(row.id),
+      slug: String(row.slug),
+      sort_order: Number(row.sort_order),
       translations,
       categories_count: Number(row.categories_count) || 0,
       subcategories_count: Number(row.subcategories_count) || 0,
@@ -240,19 +233,19 @@ export async function getTopicBySlug(slug: string, language?: string): Promise<T
   const connection = await getConnection();
   
   try {
+    const translationsJsonQuery = jsonArrayAggObject([
+      ['id', 'tt.id'],
+      ['topic_id', 'tt.topic_id'],
+      ['language_code', 'tt.language_code'],
+      ['label', 'tt.label'],
+      ['description', 'tt.description'],
+    ]);
+    
     const query = language
       ? `
         SELECT 
           t.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', tt.id,
-              'topic_id', tt.topic_id,
-              'language_code', tt.language_code,
-              'label', tt.label,
-              'description', tt.description
-            )
-          ) as translations_json,
+          ${translationsJsonQuery} as translations_json,
           (SELECT COUNT(*) FROM categories c WHERE c.topic_id = t.id) as categories_count,
           (SELECT COUNT(*) FROM subcategories s 
            INNER JOIN categories c ON s.category_id = c.id 
@@ -278,15 +271,7 @@ export async function getTopicBySlug(slug: string, language?: string): Promise<T
       : `
         SELECT 
           t.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', tt.id,
-              'topic_id', tt.topic_id,
-              'language_code', tt.language_code,
-              'label', tt.label,
-              'description', tt.description
-            )
-          ) as translations_json,
+          ${translationsJsonQuery} as translations_json,
           (SELECT COUNT(*) FROM categories c WHERE c.topic_id = t.id) as categories_count,
           (SELECT COUNT(*) FROM subcategories s 
            INNER JOIN categories c ON s.category_id = c.id 
@@ -311,7 +296,7 @@ export async function getTopicBySlug(slug: string, language?: string): Promise<T
       `;
     
     const params = language ? [language, slug] : [slug];
-    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    const [rows] = await connection.execute<DatabaseRow>(query, params);
     
     if (rows.length === 0) {
       return null;
@@ -330,9 +315,9 @@ export async function getTopicBySlug(slug: string, language?: string): Promise<T
     }
     
     return {
-      id: row.id,
-      slug: row.slug,
-      sort_order: row.sort_order,
+      id: Number(row.id),
+      slug: String(row.slug),
+      sort_order: Number(row.sort_order),
       translations,
       categories_count: Number(row.categories_count) || 0,
       subcategories_count: Number(row.subcategories_count) || 0,

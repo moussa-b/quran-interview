@@ -1,5 +1,6 @@
 import { getConnection } from '@/lib/db/connection';
-import type { RowDataPacket } from 'mysql2/promise';
+import { jsonArrayAggObject } from '@/lib/db/query-builder';
+import type { DatabaseRow } from '@/lib/db/types';
 import {
   CategoryTranslation,
   ItemQuranRef,
@@ -26,37 +27,37 @@ export async function getItems(
   const connection = await getConnection();
   
   try {
+    const translationsJsonQuery = jsonArrayAggObject([
+      ['id', 'it.id'],
+      ['item_id', 'it.item_id'],
+      ['language_code', 'it.language_code'],
+      ['label', 'it.label'],
+      ['description', 'it.description'],
+    ]);
+    
+    const quranRefsJsonQuery = jsonArrayAggObject([
+      ['id', 'iqr.id'],
+      ['item_id', 'iqr.item_id'],
+      ['chapter', 'iqr.chapter'],
+      ['start_verse', 'iqr.start_verse'],
+      ['end_verse', 'iqr.end_verse'],
+      ['metadata', 'iqr.metadata'],
+      ['created_at', 'iqr.created_at'],
+      ['updated_at', 'iqr.updated_at'],
+    ]);
+    
     // Build base query with subqueries for translations and refs
     let query = `
       SELECT 
         i.*,
         (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', it.id,
-              'item_id', it.item_id,
-              'language_code', it.language_code,
-              'label', it.label,
-              'description', it.description
-            )
-          )
+          SELECT ${translationsJsonQuery}
           FROM item_translations it
           WHERE it.item_id = i.id
           ${language ? 'AND it.language_code = ?' : ''}
         ) as translations_json,
         (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', iqr.id,
-              'item_id', iqr.item_id,
-              'chapter', iqr.chapter,
-              'start_verse', iqr.start_verse,
-              'end_verse', iqr.end_verse,
-              'metadata', iqr.metadata,
-              'created_at', iqr.created_at,
-              'updated_at', iqr.updated_at
-            )
-          )
+          SELECT ${quranRefsJsonQuery}
           FROM item_quran_refs iqr
           WHERE iqr.item_id = i.id
           ORDER BY iqr.chapter, iqr.start_verse
@@ -80,7 +81,7 @@ export async function getItems(
     
     query += ' ORDER BY i.sort_order ASC';
     
-    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    const [rows] = await connection.execute<DatabaseRow>(query, params);
     
     // Parse JSON and construct results
     return rows.map(row => {
@@ -107,11 +108,11 @@ export async function getItems(
       }
       
       return {
-        id: row.id,
-        category_id: row.category_id,
-        subcategory_id: row.subcategory_id,
-        slug: row.slug,
-        sort_order: row.sort_order,
+        id: Number(row.id),
+        category_id: row.category_id !== null ? Number(row.category_id) : null,
+        subcategory_id: row.subcategory_id !== null ? Number(row.subcategory_id) : null,
+        slug: String(row.slug),
+        sort_order: Number(row.sort_order),
         translations,
         quran_refs,
       };
@@ -132,36 +133,36 @@ export async function getItem(id: number, language?: string): Promise<ItemWithDe
   const connection = await getConnection();
   
   try {
+    const translationsJsonQuery = jsonArrayAggObject([
+      ['id', 'it.id'],
+      ['item_id', 'it.item_id'],
+      ['language_code', 'it.language_code'],
+      ['label', 'it.label'],
+      ['description', 'it.description'],
+    ]);
+    
+    const quranRefsJsonQuery = jsonArrayAggObject([
+      ['id', 'iqr.id'],
+      ['item_id', 'iqr.item_id'],
+      ['chapter', 'iqr.chapter'],
+      ['start_verse', 'iqr.start_verse'],
+      ['end_verse', 'iqr.end_verse'],
+      ['metadata', 'iqr.metadata'],
+      ['created_at', 'iqr.created_at'],
+      ['updated_at', 'iqr.updated_at'],
+    ]);
+    
     const query = `
       SELECT 
         i.*,
         (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', it.id,
-              'item_id', it.item_id,
-              'language_code', it.language_code,
-              'label', it.label,
-              'description', it.description
-            )
-          )
+          SELECT ${translationsJsonQuery}
           FROM item_translations it
           WHERE it.item_id = i.id
           ${language ? 'AND it.language_code = ?' : ''}
         ) as translations_json,
         (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', iqr.id,
-              'item_id', iqr.item_id,
-              'chapter', iqr.chapter,
-              'start_verse', iqr.start_verse,
-              'end_verse', iqr.end_verse,
-              'metadata', iqr.metadata,
-              'created_at', iqr.created_at,
-              'updated_at', iqr.updated_at
-            )
-          )
+          SELECT ${quranRefsJsonQuery}
           FROM item_quran_refs iqr
           WHERE iqr.item_id = i.id
           ORDER BY iqr.chapter, iqr.start_verse
@@ -171,7 +172,7 @@ export async function getItem(id: number, language?: string): Promise<ItemWithDe
     `;
     
     const params = language ? [language, id] : [id];
-    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    const [rows] = await connection.execute<DatabaseRow>(query, params);
     
     if (rows.length === 0) {
       return null;
@@ -201,11 +202,11 @@ export async function getItem(id: number, language?: string): Promise<ItemWithDe
     }
     
     return {
-      id: row.id,
-      category_id: row.category_id,
-      subcategory_id: row.subcategory_id,
-      slug: row.slug,
-      sort_order: row.sort_order,
+      id: Number(row.id),
+      category_id: row.category_id !== null ? Number(row.category_id) : null,
+      subcategory_id: row.subcategory_id !== null ? Number(row.subcategory_id) : null,
+      slug: String(row.slug),
+      sort_order: Number(row.sort_order),
       translations,
       quran_refs,
     };
@@ -233,6 +234,49 @@ export async function searchItems(
   const connection = await getConnection();
 
   try {
+    const itemTranslationsJsonQuery = jsonArrayAggObject([
+      ['id', 'it.id'],
+      ['item_id', 'it.item_id'],
+      ['language_code', 'it.language_code'],
+      ['label', 'it.label'],
+      ['description', 'it.description'],
+    ]);
+    
+    const quranRefsJsonQuery = jsonArrayAggObject([
+      ['id', 'iqr.id'],
+      ['item_id', 'iqr.item_id'],
+      ['chapter', 'iqr.chapter'],
+      ['start_verse', 'iqr.start_verse'],
+      ['end_verse', 'iqr.end_verse'],
+      ['metadata', 'iqr.metadata'],
+      ['created_at', 'iqr.created_at'],
+      ['updated_at', 'iqr.updated_at'],
+    ]);
+    
+    const categoryTranslationsJsonQuery = jsonArrayAggObject([
+      ['id', 'ct.id'],
+      ['category_id', 'ct.category_id'],
+      ['language_code', 'ct.language_code'],
+      ['label', 'ct.label'],
+      ['description', 'ct.description'],
+    ]);
+    
+    const subcategoryTranslationsJsonQuery = jsonArrayAggObject([
+      ['id', 'sct.id'],
+      ['subcategory_id', 'sct.subcategory_id'],
+      ['language_code', 'sct.language_code'],
+      ['label', 'sct.label'],
+      ['description', 'sct.description'],
+    ]);
+    
+    const topicTranslationsJsonQuery = jsonArrayAggObject([
+      ['id', 'tt.id'],
+      ['topic_id', 'tt.topic_id'],
+      ['language_code', 'tt.language_code'],
+      ['label', 'tt.label'],
+      ['description', 'tt.description'],
+    ]);
+    
     const likeQuery = `%${trimmed}%`;
     const params: unknown[] = [];
 
@@ -262,32 +306,13 @@ export async function searchItems(
       SELECT 
         i.*,
         (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', it.id,
-              'item_id', it.item_id,
-              'language_code', it.language_code,
-              'label', it.label,
-              'description', it.description
-            )
-          )
+          SELECT ${itemTranslationsJsonQuery}
           FROM item_translations it
           WHERE it.item_id = i.id
           ${language ? 'AND it.language_code = ?' : ''}
         ) as translations_json,
         (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', iqr.id,
-              'item_id', iqr.item_id,
-              'chapter', iqr.chapter,
-              'start_verse', iqr.start_verse,
-              'end_verse', iqr.end_verse,
-              'metadata', iqr.metadata,
-              'created_at', iqr.created_at,
-              'updated_at', iqr.updated_at
-            )
-          )
+          SELECT ${quranRefsJsonQuery}
           FROM item_quran_refs iqr
           WHERE iqr.item_id = i.id
           ORDER BY iqr.chapter, iqr.start_verse
@@ -295,15 +320,7 @@ export async function searchItems(
         COALESCE(c.id, sc.id) as resolved_category_id,
         COALESCE(c.slug, sc.slug) as resolved_category_slug,
         (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', ct.id,
-              'category_id', ct.category_id,
-              'language_code', ct.language_code,
-              'label', ct.label,
-              'description', ct.description
-            )
-          )
+          SELECT ${categoryTranslationsJsonQuery}
           FROM category_translations ct
           WHERE ct.category_id = COALESCE(c.id, sc.id)
           ${language ? 'AND ct.language_code = ?' : ''}
@@ -311,15 +328,7 @@ export async function searchItems(
         s.id as subcategory_id,
         s.slug as subcategory_slug,
         (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', sct.id,
-              'subcategory_id', sct.subcategory_id,
-              'language_code', sct.language_code,
-              'label', sct.label,
-              'description', sct.description
-            )
-          )
+          SELECT ${subcategoryTranslationsJsonQuery}
           FROM subcategory_translations sct
           WHERE sct.subcategory_id = s.id
           ${language ? 'AND sct.language_code = ?' : ''}
@@ -327,15 +336,7 @@ export async function searchItems(
         t.id as topic_id,
         t.slug as topic_slug,
         (
-          SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', tt.id,
-              'topic_id', tt.topic_id,
-              'language_code', tt.language_code,
-              'label', tt.label,
-              'description', tt.description
-            )
-          )
+          SELECT ${topicTranslationsJsonQuery}
           FROM topic_translations tt
           WHERE tt.topic_id = t.id
           ${language ? 'AND tt.language_code = ?' : ''}
@@ -354,10 +355,10 @@ export async function searchItems(
       ORDER BY i.sort_order ASC
     `;
 
-    const [rows] = await connection.execute<RowDataPacket[]>(searchQuery, params);
+    const [rows] = await connection.execute<DatabaseRow>(searchQuery, params);
 
     const parseJsonArray = <T extends { id: number | null }>(
-      json: RowDataPacket[keyof RowDataPacket]
+      json: DatabaseRow[keyof DatabaseRow]
     ): T[] => {
       if (!json || json === 'null') {
         return [];
@@ -387,11 +388,11 @@ export async function searchItems(
       const topicSlug = row.topic_slug as string | null;
 
       return {
-        id: row.id,
-        category_id: row.category_id,
-        subcategory_id: row.subcategory_id,
-        slug: row.slug,
-        sort_order: row.sort_order,
+        id: Number(row.id),
+        category_id: row.category_id !== null ? Number(row.category_id) : null,
+        subcategory_id: row.subcategory_id !== null ? Number(row.subcategory_id) : null,
+        slug: String(row.slug),
+        sort_order: Number(row.sort_order),
         translations,
         quran_refs,
         category:

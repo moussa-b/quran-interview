@@ -1,5 +1,6 @@
 import { getConnection } from '@/lib/db/connection';
-import type { RowDataPacket } from 'mysql2/promise';
+import { jsonArrayAggObject } from '@/lib/db/query-builder';
+import type { DatabaseRow } from '@/lib/db/types';
 import { SubcategoryTranslation, SubcategoryWithTranslations, } from '../types';
 
 /**
@@ -16,6 +17,14 @@ export async function getSubcategories(
   const connection = await getConnection();
   
   try {
+    const translationsJsonQuery = jsonArrayAggObject([
+      ['id', 'st.id'],
+      ['subcategory_id', 'st.subcategory_id'],
+      ['language_code', 'st.language_code'],
+      ['label', 'st.label'],
+      ['description', 'st.description'],
+    ]);
+    
     let query: string;
     let params: unknown[];
     
@@ -23,15 +32,7 @@ export async function getSubcategories(
       query = `
         SELECT 
           s.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', st.id,
-              'subcategory_id', st.subcategory_id,
-              'language_code', st.language_code,
-              'label', st.label,
-              'description', st.description
-            )
-          ) as translations_json
+          ${translationsJsonQuery} as translations_json
         FROM subcategories s
         LEFT JOIN subcategory_translations st ON st.subcategory_id = s.id AND st.language_code = ?
         WHERE s.category_id = ?
@@ -43,15 +44,7 @@ export async function getSubcategories(
       query = `
         SELECT 
           s.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', st.id,
-              'subcategory_id', st.subcategory_id,
-              'language_code', st.language_code,
-              'label', st.label,
-              'description', st.description
-            )
-          ) as translations_json
+          ${translationsJsonQuery} as translations_json
         FROM subcategories s
         LEFT JOIN subcategory_translations st ON st.subcategory_id = s.id
         WHERE s.category_id = ?
@@ -63,15 +56,7 @@ export async function getSubcategories(
       query = `
         SELECT 
           s.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', st.id,
-              'subcategory_id', st.subcategory_id,
-              'language_code', st.language_code,
-              'label', st.label,
-              'description', st.description
-            )
-          ) as translations_json
+          ${translationsJsonQuery} as translations_json
         FROM subcategories s
         LEFT JOIN subcategory_translations st ON st.subcategory_id = s.id AND st.language_code = ?
         GROUP BY s.id
@@ -82,15 +67,7 @@ export async function getSubcategories(
       query = `
         SELECT 
           s.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', st.id,
-              'subcategory_id', st.subcategory_id,
-              'language_code', st.language_code,
-              'label', st.label,
-              'description', st.description
-            )
-          ) as translations_json
+          ${translationsJsonQuery} as translations_json
         FROM subcategories s
         LEFT JOIN subcategory_translations st ON st.subcategory_id = s.id
         GROUP BY s.id
@@ -99,7 +76,7 @@ export async function getSubcategories(
       params = [];
     }
     
-    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    const [rows] = await connection.execute<DatabaseRow>(query, params);
     
     // Parse JSON and construct results
     return rows.map(row => {
@@ -115,10 +92,10 @@ export async function getSubcategories(
       }
       
       return {
-        id: row.id,
-        category_id: row.category_id,
-        slug: row.slug,
-        sort_order: row.sort_order,
+        id: Number(row.id),
+        category_id: Number(row.category_id),
+        slug: String(row.slug),
+        sort_order: Number(row.sort_order),
         translations,
       };
     });
@@ -138,19 +115,19 @@ export async function getSubcategory(id: number, language?: string): Promise<Sub
   const connection = await getConnection();
   
   try {
+    const translationsJsonQuery = jsonArrayAggObject([
+      ['id', 'st.id'],
+      ['subcategory_id', 'st.subcategory_id'],
+      ['language_code', 'st.language_code'],
+      ['label', 'st.label'],
+      ['description', 'st.description'],
+    ]);
+    
     const query = language
       ? `
         SELECT 
           s.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', st.id,
-              'subcategory_id', st.subcategory_id,
-              'language_code', st.language_code,
-              'label', st.label,
-              'description', st.description
-            )
-          ) as translations_json
+          ${translationsJsonQuery} as translations_json
         FROM subcategories s
         LEFT JOIN subcategory_translations st ON st.subcategory_id = s.id AND st.language_code = ?
         WHERE s.id = ?
@@ -159,15 +136,7 @@ export async function getSubcategory(id: number, language?: string): Promise<Sub
       : `
         SELECT 
           s.*,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'id', st.id,
-              'subcategory_id', st.subcategory_id,
-              'language_code', st.language_code,
-              'label', st.label,
-              'description', st.description
-            )
-          ) as translations_json
+          ${translationsJsonQuery} as translations_json
         FROM subcategories s
         LEFT JOIN subcategory_translations st ON st.subcategory_id = s.id
         WHERE s.id = ?
@@ -175,7 +144,7 @@ export async function getSubcategory(id: number, language?: string): Promise<Sub
       `;
     
     const params = language ? [language, id] : [id];
-    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    const [rows] = await connection.execute<DatabaseRow>(query, params);
     
     if (rows.length === 0) {
       return null;
@@ -194,10 +163,10 @@ export async function getSubcategory(id: number, language?: string): Promise<Sub
     }
     
     return {
-      id: row.id,
-      category_id: row.category_id,
-      slug: row.slug,
-      sort_order: row.sort_order,
+      id: Number(row.id),
+      category_id: Number(row.category_id),
+      slug: String(row.slug),
+      sort_order: Number(row.sort_order),
       translations,
     };
   } finally {
