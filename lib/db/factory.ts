@@ -2,6 +2,7 @@ import type { DatabaseAdapter } from './types';
 import { MySQLAdapter } from './adapters/mysql-adapter';
 import { SQLiteAdapter } from './adapters/sqlite-adapter';
 import type mysql from 'mysql2/promise';
+import * as path from 'path';
 
 /**
  * Get database configuration from environment variables
@@ -37,10 +38,16 @@ function getDatabaseConfig(): {
   } else {
     // SQLite: use DB_PATH if set, otherwise fallback to DB_NAME as file path
     const dbPath = process.env.DB_PATH || process.env.DB_NAME || './quran.db';
+    console.log(`[DB Config] process.cwd(): ${process.cwd()}`);
+    console.log(`[DB Config] Original dbPath: ${dbPath}`);
+    const resolvedPath = dbPath.startsWith('.') || !dbPath.startsWith('/') 
+      ? path.join(process.cwd(), dbPath)
+      : dbPath;
+    console.log(`[DB Config] Resolved dbPath: ${resolvedPath}`);
 
     return {
       type: 'sqlite',
-      sqlitePath: dbPath,
+      sqlitePath: resolvedPath,
     };
   }
 }
