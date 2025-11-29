@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { Figtree } from 'next/font/google';
 import './globals.css';
 import { fallbackLocale } from '@/lib/i18n/config';
+import Script from 'next/script';
 
 const figtree = Figtree({
   variable: "--font-figtree",
@@ -42,6 +43,7 @@ export default async function RootLayout({
             `,
           }}
         />
+        <Script defer src="https://umami.bdzapps.com/script.js" data-website-id="3d276b12-7126-465d-965f-323418e28c46"></Script>
       </head>
       <body className={`${figtree.variable} antialiased`}>
         {children}
